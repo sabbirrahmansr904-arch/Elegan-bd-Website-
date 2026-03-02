@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShoppingBag, 
   Menu, 
@@ -19,23 +19,33 @@ import {
   RefreshCw,
   ArrowRight,
   MessageCircle,
+  Mail,
   Trash2,
   Plus,
   Minus,
-  User as UserIcon
+  Edit,
+  User as UserIcon,
+  LayoutDashboard,
+  CreditCard,
+  Users,
+  Ticket,
+  Package,
+  Settings,
+  LogOut
 } from 'lucide-react';
-import { Product, CartItem, User, Order } from './types';
+import { Product, CartItem, User, Order, Banner, Coupon } from './types';
 
 // --- Components ---
 
 const Logo = ({ className = "", light = true }: { className?: string, light?: boolean }) => (
-  <div className={`flex items-center gap-2 ${className}`}>
-    <div className="flex flex-col gap-[2px]">
-      <div className={`w-5 h-1.5 ${light ? 'bg-white' : 'bg-black'} -skew-x-[25deg] ml-3`}></div>
-      <div className={`w-5 h-1.5 ${light ? 'bg-white' : 'bg-black'} -skew-x-[25deg]`}></div>
-      <div className={`w-5 h-1.5 ${light ? 'bg-white' : 'bg-black'} -skew-x-[25deg] ml-1.5`}></div>
-    </div>
-    <span className={`text-base font-serif font-bold tracking-tighter uppercase whitespace-nowrap ${light ? 'text-white' : 'text-black'}`}>
+  <div className={`flex items-center gap-3 ${className}`}>
+    <img 
+      src="https://i.postimg.cc/csPJTT4H/1000047673-removebg-preview.png" 
+      alt="Elegan BD Logo" 
+      className="w-10 h-10 object-contain rounded-full border border-white/20"
+      referrerPolicy="no-referrer"
+    />
+    <span className={`text-xl font-serif font-bold tracking-tighter uppercase whitespace-nowrap ${light ? 'text-white' : 'text-black'}`}>
       Elegan BD
     </span>
   </div>
@@ -54,7 +64,7 @@ const Navbar = ({ cartCount, onOpenCart, onOpenUser, onNavigate, user }: {
     { name: 'Home', id: 'home' },
     { name: 'Shop', id: 'shop' },
     { name: 'About Us', id: 'about' },
-    { name: 'Size Guide', id: 'size-guide' },
+    { name: 'Returns & Exchange', id: 'returns-policy' },
     { name: 'Contact', id: 'contact' },
     { name: 'Admin', id: 'admin' },
   ];
@@ -103,7 +113,11 @@ const Navbar = ({ cartCount, onOpenCart, onOpenUser, onNavigate, user }: {
               className="p-2 text-white hover:text-white/70 transition-colors flex items-center gap-2"
             >
               <UserIcon size={20} />
-              {user && <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest">{user.name.split(' ')[0]}</span>}
+              {user && user.name && (
+                <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest">
+                  {user.name.split(' ')[0]}
+                </span>
+              )}
             </button>
             <button 
               onClick={onOpenCart}
@@ -350,12 +364,71 @@ const UserPanel = ({ isOpen, onClose, onLoginSuccess, user, onLogout }: {
   );
 };
 
-const Hero = ({ onShopNow }: { onShopNow: () => void }) => {
+const ReviewsPage = ({ onBack }: { onBack: () => void }) => {
+  const reviews = Array.from({ length: 100 }, (_, i) => ({
+    id: i,
+    name: ["Sabbir Ahmed", "Rahat Khan", "Tanvir Hossain", "Arifur Rahman", "Mahbub Alam", "Sakib Al Hasan", "Mushfiqur Rahim", "Tamim Iqbal", "Mahmudullah Riyad", "Mustafizur Rahman"][i % 10],
+    rating: 5 - (i % 2),
+    comment: [
+      "The quality of the fabric is outstanding. Perfect fit for formal office wear.",
+      "I bought the Sky Blue one. The color is exactly as shown in the pictures. Highly recommended!",
+      "Very comfortable for long hours. The stitching is very professional.",
+      "Best formal shirt I've ever bought. The fabric feels premium and soft.",
+      "The formal pant fits perfectly. The material is durable and looks very sharp.",
+      "Excellent customer service and fast delivery. The product quality is top-notch.",
+      "I'm very satisfied with my purchase. The size guide was very helpful.",
+      "The color doesn't fade after washing. Very good quality cotton.",
+      "Perfect for office and formal events. I'll definitely buy more.",
+      "Great value for money. The premium feel is definitely there."
+    ][i % 10],
+    date: `${(i % 30) + 1} days ago`,
+    category: i % 2 === 0 ? "Formal Shirt" : "Formal Pant"
+  }));
+
+  return (
+    <div className="pt-32 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <button 
+        onClick={onBack}
+        className="flex items-center text-zinc-500 hover:text-zinc-900 mb-8 transition-colors"
+      >
+        <ArrowRight className="rotate-180 mr-2" size={16} />
+        Back to Home
+      </button>
+
+      <div className="text-center mb-16">
+        <h1 className="text-4xl font-serif font-bold text-zinc-900 mb-4">Customer Reviews</h1>
+        <p className="text-zinc-500">What our 100+ customers say about our products</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {reviews.map((review) => (
+          <div key={review.id} className="bg-white p-8 rounded-2xl shadow-sm border border-zinc-100">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex gap-1 text-yellow-400">
+                {[...Array(review.rating)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-2 py-1 bg-zinc-50 rounded">
+                {review.category}
+              </span>
+            </div>
+            <p className="text-zinc-600 text-sm mb-6 italic">"{review.comment}"</p>
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold uppercase tracking-widest">{review.name}</span>
+              <span className="text-[10px] text-zinc-400 uppercase">{review.date}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const Hero = ({ onShopNow, promoImage }: { onShopNow: () => void, promoImage?: string }) => {
   return (
     <div className="pt-20">
       <section className="relative h-[40vh] sm:h-[50vh] lg:h-[60vh] overflow-hidden">
         <img 
-          src="https://i.imgur.com/QSAF3GM.jpeg" 
+          src="https://i.postimg.cc/3YQDcY30/file-000000009834720782e584db1467b407.png" 
           alt="Hero Model" 
           className="w-full h-full object-cover object-top"
           referrerPolicy="no-referrer"
@@ -377,9 +450,68 @@ const Hero = ({ onShopNow }: { onShopNow: () => void }) => {
               View Collection
             </button>
           </motion.div>
+
+          {promoImage && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+              className="mt-12 flex justify-center"
+            >
+              <img 
+                src={promoImage} 
+                alt="Promo Banner" 
+                className="max-w-5xl w-full rounded-2xl shadow-xl border border-zinc-100" 
+                referrerPolicy="no-referrer" 
+              />
+            </motion.div>
+          )}
         </div>
       </div>
     </div>
+  );
+};
+
+const OfferSlider = ({ banners }: { banners: Banner[] }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const displayItems = banners;
+
+  useEffect(() => {
+    if (displayItems.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % displayItems.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [displayItems.length]);
+
+  if (displayItems.length === 0) return null;
+
+  const currentItem = displayItems[currentIndex];
+
+  return (
+    <motion.div 
+      whileHover={{ scale: 1.01 }}
+      onClick={() => {
+        if (currentItem.link) {
+          window.location.href = currentItem.link;
+        }
+      }}
+      className="relative aspect-[3/2] bg-zinc-100 overflow-hidden flex items-center justify-center group cursor-pointer w-full max-w-4xl rounded-xl shadow-lg border border-zinc-100"
+    >
+      <AnimatePresence mode="wait">
+        <motion.img
+          key={currentItem?.id || currentIndex}
+          src={currentItem?.image}
+          alt="Banner"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="absolute inset-0 w-full h-full object-cover"
+          referrerPolicy="no-referrer"
+        />
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
@@ -390,11 +522,11 @@ const ProductCard = ({ product, onSelect }: { product: Product, onSelect: (p: Pr
       className="group cursor-pointer"
       onClick={() => onSelect(product)}
     >
-      <div className="relative aspect-[3/4] overflow-hidden bg-zinc-100 mb-4">
+      <div className="relative aspect-[3/4] overflow-hidden bg-white mb-4 rounded-2xl border border-zinc-100">
         <img 
           src={product.image} 
           alt={product.name} 
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110"
           referrerPolicy="no-referrer"
         />
         {product.originalPrice > product.price && (
@@ -419,9 +551,23 @@ const ProductCard = ({ product, onSelect }: { product: Product, onSelect: (p: Pr
   );
 };
 
-const ProductDetails = ({ product, onAddToCart, onBack }: { product: Product, onAddToCart: (p: Product, size: number) => void, onBack: () => void }) => {
+const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow }: { 
+  product: Product, 
+  onAddToCart: (p: Product, size: number) => void, 
+  onBack: () => void,
+  onBuyNow: (p: Product, size: number) => void
+}) => {
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [activeImage, setActiveImage] = useState(product.image);
+  const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
+  const [isZoomed, setIsZoomed] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.pageX - left) / width) * 100;
+    const y = ((e.pageY - top) / height) * 100;
+    setZoomPos({ x, y });
+  };
 
   return (
     <div className="pt-32 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -436,14 +582,36 @@ const ProductDetails = ({ product, onAddToCart, onBack }: { product: Product, on
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
         {/* Images */}
         <div className="space-y-4">
-          <div className="aspect-[3/4] bg-zinc-100 overflow-hidden">
+          <div 
+            className="aspect-[3/4] bg-white overflow-hidden relative cursor-zoom-in rounded-2xl border border-zinc-100"
+            onMouseEnter={() => setIsZoomed(true)}
+            onMouseLeave={() => setIsZoomed(false)}
+            onMouseMove={handleMouseMove}
+          >
             <img 
-              src={product.image} 
+              src={activeImage} 
               alt={product.name} 
-              className="w-full h-full object-cover"
+              className={`w-full h-full object-contain transition-transform duration-200 ${isZoomed ? 'scale-[2]' : 'scale-100'}`}
+              style={{
+                transformOrigin: isZoomed ? `${zoomPos.x}% ${zoomPos.y}%` : 'center'
+              }}
               referrerPolicy="no-referrer"
             />
           </div>
+          
+          {product.images && product.images.length > 1 && (
+            <div className="grid grid-cols-4 gap-4">
+              {product.images.map((img, idx) => (
+                <button 
+                  key={idx}
+                  onClick={() => setActiveImage(img)}
+                  className={`aspect-square border-2 overflow-hidden transition-all ${activeImage === img ? 'border-zinc-900' : 'border-transparent hover:border-zinc-200'}`}
+                >
+                  <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Info */}
@@ -502,7 +670,11 @@ const ProductDetails = ({ product, onAddToCart, onBack }: { product: Product, on
             >
               Add to Cart
             </button>
-            <button className="flex-1 btn-secondary">
+            <button 
+              onClick={() => selectedSize && onBuyNow(product, selectedSize)}
+              disabled={!selectedSize}
+              className="flex-1 btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Buy Now
             </button>
           </div>
@@ -637,14 +809,23 @@ const CheckoutPage = ({ items, onBack, onComplete }: { items: CartItem[], onBack
     phone: '',
     address: '',
     city: 'Dhaka',
+    location: 'inside', // 'inside' or 'outside'
+    paymentMethod: 'COD',
+    transactionId: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = 60;
+  const shipping = formData.location === 'inside' ? 70 : 130;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if ((formData.paymentMethod === 'bKash' || formData.paymentMethod === 'Nagad') && !formData.transactionId) {
+      alert('Please enter the Transaction ID');
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
@@ -652,11 +833,13 @@ const CheckoutPage = ({ items, onBack, onComplete }: { items: CartItem[], onBack
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customer_name: formData.name,
+          customerName: formData.name,
           phone: formData.phone,
           address: formData.address,
-          total_amount: total + shipping,
-          items: items
+          totalAmount: total + shipping,
+          items: items,
+          paymentMethod: formData.paymentMethod,
+          transactionId: formData.transactionId
         })
       });
       
@@ -709,14 +892,103 @@ const CheckoutPage = ({ items, onBack, onComplete }: { items: CartItem[], onBack
                 onChange={e => setFormData({...formData, address: e.target.value})}
               />
             </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Delivery Area</label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, location: 'inside'})}
+                  className={`p-4 border text-center transition-all rounded-xl ${formData.location === 'inside' ? 'border-zinc-900 bg-zinc-50 font-bold' : 'border-zinc-200 text-zinc-500 hover:border-zinc-400'}`}
+                >
+                  <p className="text-sm">Inside Dhaka</p>
+                  <p className="text-xs mt-1">৳70</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, location: 'outside'})}
+                  className={`p-4 border text-center transition-all rounded-xl ${formData.location === 'outside' ? 'border-zinc-900 bg-zinc-50 font-bold' : 'border-zinc-200 text-zinc-500 hover:border-zinc-400'}`}
+                >
+                  <p className="text-sm">Outside Dhaka</p>
+                  <p className="text-xs mt-1">৳130</p>
+                </button>
+              </div>
+            </div>
             
             <div className="pt-8">
               <h3 className="text-sm font-bold uppercase tracking-widest mb-4">Payment Method</h3>
-              <div className="p-4 border border-zinc-900 bg-zinc-50 flex items-center justify-between">
-                <span className="font-medium">Cash on Delivery (COD)</span>
-                <ShieldCheck className="text-zinc-900" size={20} />
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, paymentMethod: 'COD'})}
+                  className={`w-full p-4 border flex items-center justify-between transition-all ${formData.paymentMethod === 'COD' ? 'border-zinc-900 bg-zinc-50' : 'border-zinc-200 hover:border-zinc-400'}`}
+                >
+                  <span className="font-medium">Cash on Delivery (COD)</span>
+                  {formData.paymentMethod === 'COD' && <ShieldCheck className="text-zinc-900" size={20} />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, paymentMethod: 'bKash'})}
+                  className={`w-full p-4 border flex items-center justify-between transition-all ${formData.paymentMethod === 'bKash' ? 'border-zinc-900 bg-zinc-50' : 'border-zinc-200 hover:border-zinc-400'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src="https://i.postimg.cc/FNktNhrf/1656234782bkash-app-logo.png" 
+                      alt="bKash" 
+                      className="w-8 h-8 object-contain rounded"
+                      referrerPolicy="no-referrer"
+                    />
+                    <span className="font-medium">bKash Send Money</span>
+                  </div>
+                  {formData.paymentMethod === 'bKash' && <ShieldCheck className="text-zinc-900" size={20} />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, paymentMethod: 'Nagad'})}
+                  className={`w-full p-4 border flex items-center justify-between transition-all ${formData.paymentMethod === 'Nagad' ? 'border-zinc-900 bg-zinc-50' : 'border-zinc-200 hover:border-zinc-400'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src="https://i.postimg.cc/Dv0j6cmq/images.png" 
+                      alt="Nagad" 
+                      className="w-8 h-8 object-contain rounded"
+                      referrerPolicy="no-referrer"
+                    />
+                    <span className="font-medium">Nagad Send Money</span>
+                  </div>
+                  {formData.paymentMethod === 'Nagad' && <ShieldCheck className="text-zinc-900" size={20} />}
+                </button>
               </div>
-              <p className="text-xs text-zinc-400 mt-2 italic">Pay when you receive the product at your doorstep.</p>
+
+              {formData.paymentMethod === 'COD' ? (
+                <p className="text-xs text-zinc-400 mt-2 italic">Pay when you receive the product at your doorstep.</p>
+              ) : (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-6 p-6 bg-zinc-900 text-white rounded-xl space-y-4"
+                >
+                  <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                    <span className="text-sm text-white/60">Send Money to:</span>
+                    <span className="text-lg font-bold tracking-wider">01619835133</span>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs text-white/60 leading-relaxed">
+                      Please send <span className="text-white font-bold">৳{total + shipping}</span> to the number above using {formData.paymentMethod} "Send Money" option. After sending, enter the Transaction ID below.
+                    </p>
+                    <input 
+                      required
+                      type="text"
+                      placeholder="Enter Transaction ID"
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-sm outline-none focus:border-white/40 transition-all"
+                      value={formData.transactionId}
+                      onChange={e => setFormData({...formData, transactionId: e.target.value})}
+                    />
+                  </div>
+                </motion.div>
+              )}
             </div>
 
             <button 
@@ -746,7 +1018,7 @@ const CheckoutPage = ({ items, onBack, onComplete }: { items: CartItem[], onBack
               <span>৳{total}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-zinc-500">Shipping (Inside Dhaka)</span>
+              <span className="text-zinc-500">Shipping ({formData.location === 'inside' ? 'Inside Dhaka' : 'Outside Dhaka'})</span>
               <span>৳{shipping}</span>
             </div>
             <div className="flex justify-between text-lg font-bold pt-4">
@@ -760,23 +1032,103 @@ const CheckoutPage = ({ items, onBack, onComplete }: { items: CartItem[], onBack
   );
 };
 
-const AdminPanel = ({ onBack }: { onBack: () => void }) => {
+const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshPromoImage }: { onBack: () => void, onRefreshProducts: () => void, onRefreshBanners: () => void, onRefreshPromoImage: () => void }) => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [customers, setCustomers] = useState<User[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [promoImage, setPromoImage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  
+  // Product Form State
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [productFormData, setProductFormData] = useState({
+    name: '',
+    category: 'Formal Pant',
+    price: 0,
+    originalPrice: 0,
+    image: '',
+    fabric: 'Woven Cotton',
+    fit: 'Slim Fit',
+    description: '',
+    sizes: [30, 32, 34, 36, 38]
+  });
+
+  // Banner Form State
+  const [showBannerForm, setShowBannerForm] = useState(false);
+  const [bannerFormData, setBannerFormData] = useState({
+    image: '',
+    title: '',
+    link: ''
+  });
+
+  const [showCouponForm, setShowCouponForm] = useState(false);
+  const [couponFormData, setCouponFormData] = useState({
+    code: '',
+    discount_type: 'percentage' as 'percentage' | 'fixed',
+    discount_value: 0,
+    min_purchase: 0,
+    expiry_date: ''
+  });
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetch('/api/admin/orders')
-        .then(res => res.json())
-        .then(data => {
-          setOrders(data);
-          setLoading(false);
-        });
+      setLoading(true);
+      if (activeTab === 'orders') {
+        fetch('/api/admin/orders')
+          .then(res => res.json())
+          .then(data => {
+            setOrders(data);
+            setLoading(false);
+          });
+      } else if (activeTab === 'products') {
+        fetch('/api/products')
+          .then(res => res.json())
+          .then(data => {
+            setProducts(data);
+            setLoading(false);
+          });
+      } else if (activeTab === 'banners') {
+        fetch('/api/banners')
+          .then(res => res.json())
+          .then(data => {
+            setBanners(data);
+            setLoading(false);
+          });
+      } else if (activeTab === 'customers') {
+        fetch('/api/customers')
+          .then(res => res.json())
+          .then(data => {
+            setCustomers(data);
+            setLoading(false);
+          });
+      } else if (activeTab === 'coupons') {
+        fetch('/api/coupons')
+          .then(res => res.json())
+          .then(data => {
+            setCoupons(data);
+            setLoading(false);
+          });
+      } else if (activeTab === 'customization') {
+        fetch('/api/settings/promo_image_hero')
+          .then(res => res.json())
+          .then(data => {
+            setPromoImage(data.value);
+            setLoading(false);
+          });
+      } else {
+        setLoading(false);
+      }
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, activeTab]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -799,6 +1151,213 @@ const AdminPanel = ({ onBack }: { onBack: () => void }) => {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleProductSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const url = editingProduct ? `/api/admin/products/${editingProduct.id}` : '/api/admin/products';
+    const method = editingProduct ? 'PUT' : 'POST';
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...productFormData,
+          images: [productFormData.image]
+        })
+      });
+
+      if (res.ok) {
+        setShowProductForm(false);
+        setEditingProduct(null);
+        setProductFormData({
+          name: '',
+          price: 0,
+          originalPrice: 0,
+          image: '',
+          fabric: 'Woven Cotton',
+          fit: 'Slim Fit',
+          description: '',
+          sizes: [30, 32, 34, 36, 38]
+        });
+        // Refresh local list
+        fetch('/api/products')
+          .then(res => res.json())
+          .then(data => setProducts(data));
+        onRefreshProducts();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteProduct = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+    try {
+      const res = await fetch(`/api/admin/products/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setProducts(prev => prev.filter(p => p.id !== id));
+        onRefreshProducts();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const startEdit = (product: Product) => {
+    setEditingProduct(product);
+    setProductFormData({
+      name: product.name,
+      category: product.category || 'Formal Pant',
+      price: product.price,
+      originalPrice: product.originalPrice,
+      image: product.image,
+      fabric: product.fabric,
+      fit: product.fit,
+      description: product.description,
+      sizes: product.sizes
+    });
+    setShowProductForm(true);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'banner' | 'promo' = 'product') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.imageUrl) {
+        if (type === 'product') {
+          setProductFormData({ ...productFormData, image: data.imageUrl });
+        } else if (type === 'banner') {
+          setBannerFormData({ ...bannerFormData, image: data.imageUrl });
+        } else if (type === 'promo') {
+          setPromoImage(data.imageUrl);
+        }
+      }
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Failed to upload image');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleBannerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/admin/banners', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bannerFormData)
+      });
+      if (res.ok) {
+        setShowBannerForm(false);
+        setBannerFormData({ image: '', title: '', link: '' });
+        fetch('/api/banners')
+          .then(res => res.json())
+          .then(data => setBanners(data));
+        onRefreshBanners();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteBanner = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this banner?')) return;
+    try {
+      const res = await fetch(`/api/admin/banners/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setBanners(prev => prev.filter(b => b.id !== id));
+        onRefreshBanners();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCouponSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(couponFormData)
+      });
+      if (res.ok) {
+        setShowCouponForm(false);
+        setCouponFormData({
+          code: '',
+          discount_type: 'percentage',
+          discount_value: 0,
+          min_purchase: 0,
+          expiry_date: ''
+        });
+        fetch('/api/coupons')
+          .then(res => res.json())
+          .then(data => setCoupons(data));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteCoupon = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this coupon?')) return;
+    try {
+      const res = await fetch(`/api/coupons/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setCoupons(prev => prev.filter(c => c.id !== id));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handlePromoImageSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'promo_image_hero', value: promoImage })
+      });
+      if (res.ok) {
+        alert('Promo image updated successfully!');
+        onRefreshPromoImage();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeletePromoImage = async () => {
+    if (confirm('Are you sure you want to delete the promo image?')) {
+      try {
+        const res = await fetch('/api/admin/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'promo_image_hero', value: '' })
+        });
+        if (res.ok) {
+          setPromoImage('');
+          alert('Promo image deleted successfully!');
+          onRefreshPromoImage();
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 
@@ -830,104 +1389,514 @@ const AdminPanel = ({ onBack }: { onBack: () => void }) => {
     );
   }
 
-  return (
-    <div className="pt-32 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-serif font-bold">Order Management</h2>
-        <button onClick={onBack} className="text-sm font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-900">Back</button>
-      </div>
+  const menuItems = [
+    { id: 'dashboard', name: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+    { id: 'products', name: 'Product', icon: <Package size={20} /> },
+    { id: 'orders', name: 'Order', icon: <ShoppingBag size={20} /> },
+    { id: 'payments', name: 'Payment', icon: <CreditCard size={20} /> },
+    { id: 'customers', name: 'Customer', icon: <Users size={20} /> },
+    { id: 'delivery', name: 'Delivery', icon: <Truck size={20} /> },
+    { id: 'coupons', name: 'Coupon System', icon: <Ticket size={20} /> },
+    { id: 'customization', name: 'Customization', icon: <Edit size={20} /> },
+    { id: 'banners', name: 'Banners', icon: <Settings size={20} /> },
+  ];
 
-      {loading ? (
-        <p>Loading orders...</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-zinc-200 text-xs font-bold uppercase tracking-widest text-zinc-400">
-                <th className="py-4 px-2">Order ID</th>
-                <th className="py-4 px-2">Customer</th>
-                <th className="py-4 px-2">Items</th>
-                <th className="py-4 px-2">Total</th>
-                <th className="py-4 px-2">Status</th>
-                <th className="py-4 px-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm">
-              {orders.map(order => (
-                <tr key={order.id} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
-                  <td className="py-4 px-2 font-mono">#{order.id}</td>
-                  <td className="py-4 px-2">
-                    <p className="font-bold">{order.customer_name}</p>
-                    <p className="text-xs text-zinc-500">{order.phone}</p>
-                    <p className="text-xs text-zinc-500 max-w-[200px] truncate">{order.address}</p>
-                  </td>
-                  <td className="py-4 px-2">
-                    {order.items.map((item, i) => (
-                      <p key={i} className="text-xs">{item.name} ({item.selectedSize}) x{item.quantity}</p>
-                    ))}
-                  </td>
-                  <td className="py-4 px-2 font-bold">৳{order.total_amount}</td>
-                  <td className="py-4 px-2">
-                    <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded ${
-                      order.status === 'pending' ? 'bg-amber-100 text-amber-700' : 
-                      order.status === 'shipped' ? 'bg-blue-100 text-blue-700' : 
-                      order.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-2">
-                    <div className="flex flex-wrap gap-2">
-                      {order.status !== 'delivered' && order.status !== 'cancelled' && (
-                        <>
-                          <button 
-                            onClick={() => updateStatus(order.id!, 'shipped')}
-                            className="text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:underline"
-                          >
-                            Ship
-                          </button>
-                          <button 
-                            onClick={() => updateStatus(order.id!, 'delivered')}
-                            className="text-[10px] font-bold uppercase tracking-widest text-green-600 hover:underline"
-                          >
-                            Deliver
-                          </button>
-                          <button 
-                            onClick={() => {
-                              if(confirm('Are you sure you want to cancel this order?')) {
-                                updateStatus(order.id!, 'cancelled')
-                              }
-                            }}
-                            className="text-[10px] font-bold uppercase tracking-widest text-red-600 hover:underline"
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+  return (
+    <div className="flex min-h-screen bg-zinc-50 pt-20">
+      {/* Sidebar */}
+      <motion.aside 
+        initial={false}
+        animate={{ width: isSidebarOpen ? 280 : 0, opacity: isSidebarOpen ? 1 : 0 }}
+        className="bg-white border-r border-zinc-200 overflow-hidden fixed h-full z-40"
+      >
+        <div className="p-6">
+          <Logo light={false} className="mb-10" />
+          <nav className="space-y-1">
+            {menuItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold uppercase tracking-widest transition-colors rounded-lg ${
+                  activeTab === item.id 
+                    ? 'bg-zinc-900 text-white' 
+                    : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
+                }`}
+              >
+                {item.icon}
+                {item.name}
+              </button>
+            ))}
+          </nav>
+          <div className="mt-10 pt-10 border-t border-zinc-100">
+            <button 
+              onClick={() => setIsAuthenticated(false)}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold uppercase tracking-widest text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <LogOut size={20} />
+              Logout
+            </button>
+          </div>
         </div>
-      )}
+      </motion.aside>
+
+      {/* Main Content */}
+      <main className={`flex-grow transition-all duration-300 ${isSidebarOpen ? 'ml-[280px]' : 'ml-0'}`}>
+        <header className="bg-white border-b border-zinc-200 h-20 flex items-center justify-between px-8 sticky top-20 z-30">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 text-zinc-500 hover:bg-zinc-100 rounded-lg transition-colors"
+            >
+              <Menu size={24} />
+            </button>
+            <h2 className="text-xl font-serif font-bold uppercase tracking-tight">
+              {menuItems.find(i => i.id === activeTab)?.name}
+            </h2>
+          </div>
+          <button onClick={onBack} className="text-xs font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-900">
+            Exit Admin
+          </button>
+        </header>
+
+        <div className="p-8">
+
+          {activeTab === 'dashboard' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-100">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Total Revenue</p>
+                <h3 className="text-2xl font-bold">৳{orders.reduce((acc, o) => acc + o.total_amount, 0).toLocaleString()}</h3>
+              </div>
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-100">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Total Orders</p>
+                <h3 className="text-2xl font-bold">{orders.length}</h3>
+              </div>
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-100">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Total Customers</p>
+                <h3 className="text-2xl font-bold">{customers.length}</h3>
+              </div>
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-100">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Total Products</p>
+                <h3 className="text-2xl font-bold">{products.length}</h3>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'orders' && (
+            loading ? <p>Loading orders...</p> : (
+              <div className="bg-white rounded-xl shadow-sm border border-zinc-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-zinc-100 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                        <th className="py-4 px-6">Order ID</th>
+                        <th className="py-4 px-6">Customer</th>
+                        <th className="py-4 px-6">Payment</th>
+                        <th className="py-4 px-6">Total</th>
+                        <th className="py-4 px-6">Status</th>
+                        <th className="py-4 px-6 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-sm">
+                      {orders.map(order => (
+                        <tr key={order.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                          <td className="py-4 px-6 font-mono">#{order.id}</td>
+                          <td className="py-4 px-6">
+                            <p className="font-bold">{order.customer_name}</p>
+                            <p className="text-xs text-zinc-500">{order.phone}</p>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded ${
+                              order.payment_method === 'bKash' ? 'bg-[#D12053] text-white' : 
+                              order.payment_method === 'Nagad' ? 'bg-[#F7941D] text-white' : 
+                              'bg-zinc-100 text-zinc-700'
+                            }`}>
+                              {order.payment_method || 'COD'}
+                            </span>
+                            {order.transaction_id && (
+                              <p className="text-[10px] text-zinc-400 mt-1 font-mono">TXID: {order.transaction_id}</p>
+                            )}
+                          </td>
+                          <td className="py-4 px-6 font-bold">৳{order.total_amount}</td>
+                          <td className="py-4 px-6">
+                            <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded ${
+                              order.status === 'pending' ? 'bg-amber-100 text-amber-700' : 
+                              order.status === 'shipped' ? 'bg-blue-100 text-blue-700' : 
+                              order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {order.status}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-right">
+                            <div className="flex justify-end gap-2">
+                              {order.status !== 'delivered' && order.status !== 'cancelled' && (
+                                <>
+                                  <button onClick={() => updateStatus(order.id!, 'shipped')} className="text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:underline">Ship</button>
+                                  <button onClick={() => updateStatus(order.id!, 'delivered')} className="text-[10px] font-bold uppercase tracking-widest text-green-600 hover:underline">Deliver</button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
+          )}
+          {activeTab === 'products' && (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-serif font-bold">Product Catalog</h3>
+                <button 
+                  onClick={() => {
+                    setEditingProduct(null);
+                    setProductFormData({
+                      name: '',
+                      category: 'Formal Pant',
+                      price: 0,
+                      originalPrice: 0,
+                      image: '',
+                      fabric: 'Woven Cotton',
+                      fit: 'Slim Fit',
+                      description: '',
+                      sizes: [30, 32, 34, 36, 38]
+                    });
+                    setShowProductForm(true);
+                  }}
+                  className="btn-primary py-2 px-6 flex items-center gap-2 text-xs"
+                >
+                  <Plus size={16} /> Add Product
+                </button>
+              </div>
+
+              {showProductForm && (
+                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+                  <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8 rounded-xl">
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-2xl font-serif font-bold">{editingProduct ? 'Edit Product' : 'Add New Product'}</h3>
+                      <button onClick={() => setShowProductForm(false)}><X size={24} /></button>
+                    </div>
+                    <form onSubmit={handleProductSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Product Name</label>
+                        <input required className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.name} onChange={e => setProductFormData({...productFormData, name: e.target.value})} />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Category</label>
+                        <select className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900 bg-transparent" value={productFormData.category} onChange={e => setProductFormData({...productFormData, category: e.target.value})}>
+                          <option value="Formal Pant">Formal Pant</option>
+                          <option value="Formal Shirt - Slim Fit">Formal Shirt - Slim Fit</option>
+                          <option value="Formal Shirt - Regular Fit">Formal Shirt - Regular Fit</option>
+                          <option value="Formal Shirt - Premium">Formal Shirt - Premium</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Price (৳)</label>
+                        <input required type="number" className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.price} onChange={e => setProductFormData({...productFormData, price: parseInt(e.target.value)})} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Original Price (৳)</label>
+                        <input required type="number" className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.originalPrice} onChange={e => setProductFormData({...productFormData, originalPrice: parseInt(e.target.value)})} />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Product Image</label>
+                        <div className="flex gap-4 items-center">
+                          {productFormData.image && <img src={productFormData.image} alt="Preview" className="w-20 h-20 object-cover rounded border border-zinc-200" referrerPolicy="no-referrer" />}
+                          <div className="flex-grow">
+                            <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'product')} className="hidden" id="product-image-upload" />
+                            <label htmlFor="product-image-upload" className="inline-block px-6 py-2 border border-zinc-200 text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-zinc-50 transition-colors">
+                              {isUploading ? 'Uploading...' : 'Upload from Device'}
+                            </label>
+                            <input className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900 text-sm mt-2" value={productFormData.image} onChange={e => setProductFormData({...productFormData, image: e.target.value})} placeholder="https://..." />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="md:col-span-2 pt-4 flex gap-4">
+                        <button type="submit" className="flex-grow btn-primary py-3">{editingProduct ? 'Update Product' : 'Add Product'}</button>
+                        {editingProduct && (
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              deleteProduct(editingProduct.id);
+                              setShowProductForm(false);
+                            }} 
+                            className="px-6 py-3 border border-red-200 text-red-600 hover:bg-red-50 transition-colors rounded-lg flex items-center gap-2 font-bold uppercase tracking-widest text-xs"
+                          >
+                            <Trash2 size={16} /> Delete
+                          </button>
+                        )}
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {products.map(product => (
+                  <div key={product.id} className="bg-white border border-zinc-100 p-4 flex gap-4 items-center shadow-sm rounded-xl">
+                    <img src={product.image} alt={product.name} className="w-20 h-20 object-cover rounded-lg" referrerPolicy="no-referrer" />
+                    <div className="flex-grow">
+                      <h4 className="font-bold text-sm truncate max-w-[150px]">{product.name}</h4>
+                      <p className="text-xs text-zinc-500">৳{product.price}</p>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <button onClick={() => startEdit(product)} className="px-3 py-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
+                        <Edit size={14} /> Edit
+                      </button>
+                      <button onClick={() => deleteProduct(product.id)} className="px-3 py-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {activeTab === 'banners' && (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-serif font-bold">Banner Management</h3>
+                <button 
+                  onClick={() => {
+                    setBannerFormData({ image: '', link: '' });
+                    setShowBannerForm(true);
+                  }}
+                  className="btn-primary py-2 px-6 flex items-center gap-2 text-xs"
+                >
+                  <Plus size={16} /> Add Banner
+                </button>
+              </div>
+
+              {showBannerForm && (
+                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+                  <div className="bg-white w-full max-w-md p-8 rounded-xl">
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-2xl font-serif font-bold">Add New Banner</h3>
+                      <button onClick={() => setShowBannerForm(false)}><X size={24} /></button>
+                    </div>
+                    <form onSubmit={handleBannerSubmit} className="space-y-6">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Banner Image</label>
+                        <div className="flex gap-4 items-center">
+                          {bannerFormData.image && <img src={bannerFormData.image} alt="Preview" className="w-20 h-20 object-cover rounded border border-zinc-200" referrerPolicy="no-referrer" />}
+                          <div className="flex-grow">
+                            <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'banner')} className="hidden" id="banner-image-upload" />
+                            <label htmlFor="banner-image-upload" className="inline-block px-6 py-2 border border-zinc-200 text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-zinc-50 transition-colors">
+                              {isUploading ? 'Uploading...' : 'Upload'}
+                            </label>
+                            <input className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900 text-sm mt-2" value={bannerFormData.image} onChange={e => setBannerFormData({...bannerFormData, image: e.target.value})} placeholder="https://..." />
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Link (Optional)</label>
+                        <input className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={bannerFormData.link} onChange={e => setBannerFormData({...bannerFormData, link: e.target.value})} placeholder="/category/formal-pant" />
+                      </div>
+                      <button type="submit" className="w-full btn-primary py-3">Add Banner</button>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {banners.map(banner => (
+                  <div key={banner.id} className="bg-white border border-zinc-100 p-4 rounded-xl shadow-sm group">
+                    <div className="relative aspect-[1536/1024] overflow-hidden rounded-lg mb-4">
+                      <img src={banner.image} alt="Banner" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <button onClick={() => deleteBanner(banner.id!)} className="absolute top-2 right-2 p-2 bg-white/90 text-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"><Trash2 size={18} /></button>
+                    </div>
+                    {banner.link && <p className="text-xs text-zinc-500">Link: {banner.link}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'customers' && (
+            <div className="bg-white rounded-xl shadow-sm border border-zinc-100 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-zinc-100 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                      <th className="py-4 px-6">Name</th>
+                      <th className="py-4 px-6">Email</th>
+                      <th className="py-4 px-6">Phone</th>
+                      <th className="py-4 px-6">Join Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm">
+                    {customers.map(customer => (
+                      <tr key={customer.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                        <td className="py-4 px-6 font-bold">{customer.name}</td>
+                        <td className="py-4 px-6">{customer.email}</td>
+                        <td className="py-4 px-6">{customer.phone || 'N/A'}</td>
+                        <td className="py-4 px-6 text-zinc-500">{new Date(customer.created_at || '').toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'coupons' && (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-serif font-bold">Coupon System</h3>
+                <button onClick={() => setShowCouponForm(true)} className="btn-primary py-2 px-6 flex items-center gap-2 text-xs">
+                  <Plus size={16} /> Create Coupon
+                </button>
+              </div>
+
+              {showCouponForm && (
+                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+                  <div className="bg-white w-full max-w-md p-8 rounded-xl">
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-2xl font-serif font-bold">New Coupon</h3>
+                      <button onClick={() => setShowCouponForm(false)}><X size={24} /></button>
+                    </div>
+                    <form onSubmit={handleCouponSubmit} className="space-y-6">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Coupon Code</label>
+                        <input required className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900 uppercase" value={couponFormData.code} onChange={e => setCouponFormData({...couponFormData, code: e.target.value.toUpperCase()})} placeholder="SAVE20" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Type</label>
+                          <select className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900 bg-transparent" value={couponFormData.discount_type} onChange={e => setCouponFormData({...couponFormData, discount_type: e.target.value as any})}>
+                            <option value="percentage">Percentage</option>
+                            <option value="fixed">Fixed Amount</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Value</label>
+                          <input required type="number" className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={couponFormData.discount_value} onChange={e => setCouponFormData({...couponFormData, discount_value: parseInt(e.target.value)})} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Min Purchase (৳)</label>
+                        <input required type="number" className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={couponFormData.min_purchase} onChange={e => setCouponFormData({...couponFormData, min_purchase: parseInt(e.target.value)})} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Expiry Date</label>
+                        <input required type="date" className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={couponFormData.expiry_date} onChange={e => setCouponFormData({...couponFormData, expiry_date: e.target.value})} />
+                      </div>
+                      <button type="submit" className="w-full btn-primary py-3">Create Coupon</button>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-white rounded-xl shadow-sm border border-zinc-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-zinc-100 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                        <th className="py-4 px-6">Code</th>
+                        <th className="py-4 px-6">Discount</th>
+                        <th className="py-4 px-6">Min Purchase</th>
+                        <th className="py-4 px-6">Expiry</th>
+                        <th className="py-4 px-6 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-sm">
+                      {coupons.map(coupon => (
+                        <tr key={coupon.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                          <td className="py-4 px-6 font-mono font-bold">{coupon.code}</td>
+                          <td className="py-4 px-6">{coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `৳${coupon.discount_value}`}</td>
+                          <td className="py-4 px-6">৳{coupon.min_purchase}</td>
+                          <td className="py-4 px-6">{coupon.expiry_date}</td>
+                          <td className="py-4 px-6 text-right">
+                            <button onClick={() => deleteCoupon(coupon.id!)} className="text-red-600 hover:underline text-xs font-bold uppercase tracking-widest">Delete</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'payments' && (
+            <div className="bg-white p-12 rounded-xl border border-dashed border-zinc-200 text-center">
+              <CreditCard className="mx-auto mb-4 text-zinc-300" size={48} />
+              <h3 className="text-lg font-serif font-bold mb-2">Payment Settings</h3>
+              <p className="text-zinc-500 text-sm max-w-md mx-auto">Configure your payment gateways and view transaction history. This section is coming soon.</p>
+            </div>
+          )}
+
+          {activeTab === 'delivery' && (
+            <div className="bg-white p-12 rounded-xl border border-dashed border-zinc-200 text-center">
+              <Truck className="mx-auto mb-4 text-zinc-300" size={48} />
+              <h3 className="text-lg font-serif font-bold mb-2">Delivery Management</h3>
+              <p className="text-zinc-500 text-sm max-w-md mx-auto">Manage delivery zones, shipping rates, and carrier integrations. This section is coming soon.</p>
+            </div>
+          )}
+
+          {activeTab === 'customization' && (
+            <div className="max-w-2xl">
+              <h3 className="text-xl font-serif font-bold mb-6">Site Customization</h3>
+              <div className="bg-white p-8 rounded-xl shadow-sm border border-zinc-100">
+                <form onSubmit={handlePromoImageSubmit} className="space-y-6">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Hero Promo Image (Below View Collection)</label>
+                    <div className="space-y-4">
+                      {promoImage && (
+                        <div className="relative aspect-video rounded-lg overflow-hidden border border-zinc-200">
+                          <img src={promoImage} alt="Promo Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        </div>
+                      )}
+                      <div className="flex gap-4 items-center">
+                        <div className="flex-grow">
+                          <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'promo')} className="hidden" id="promo-image-upload" />
+                          <label htmlFor="promo-image-upload" className="inline-block px-6 py-2 border border-zinc-200 text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-zinc-50 transition-colors">
+                            {isUploading ? 'Uploading...' : 'Upload New Image'}
+                          </label>
+                          <input 
+                            className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900 text-sm mt-4" 
+                            value={promoImage} 
+                            onChange={e => setPromoImage(e.target.value)} 
+                            placeholder="Or enter image URL..." 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button type="submit" className="btn-primary py-3 px-12">Save Changes</button>
+                  {promoImage && (
+                    <button 
+                      type="button" 
+                      onClick={handleDeletePromoImage}
+                      className="ml-4 px-12 py-3 border border-red-200 text-red-600 text-xs font-bold uppercase tracking-widest hover:bg-red-50 transition-colors"
+                    >
+                      Delete Image
+                    </button>
+                  )}
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 };
 
-const Footer = () => {
+const Footer = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
   return (
     <footer className="bg-zinc-900 text-white pt-20 pb-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
-          <div className="col-span-1 md:col-span-1">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16 text-center">
+          <div className="flex flex-col items-center">
             <Logo className="mb-6" />
-            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+            <p className="text-zinc-400 text-sm leading-relaxed mb-6 max-w-xs">
               Premium formal wear for the modern gentleman. Crafted with precision, designed for elegance.
             </p>
-            <div className="space-y-2">
+            <div className="space-y-4">
               <p className="text-zinc-400 text-sm">
                 <span className="text-white font-bold uppercase tracking-widest text-[10px] block mb-1">Email</span>
                 eleganbd.ltd@gmail.com
@@ -939,21 +1908,21 @@ const Footer = () => {
             </div>
           </div>
           
-          <div>
+          <div className="flex flex-col items-center">
             <h4 className="text-xs font-bold uppercase tracking-[0.2em] mb-6">Quick Links</h4>
             <ul className="space-y-4 text-sm text-zinc-400">
-              <li><a href="#" className="hover:text-white transition-colors">Shop All</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">New Arrivals</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Size Guide</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Track Order</a></li>
+              <li><a href="#" onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Shop All</a></li>
+              <li><a href="#" onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">New Arrivals</a></li>
+              <li><a href="#" onClick={() => onNavigate('returns-policy')} className="hover:text-white transition-colors">Returns & Exchange Policy</a></li>
+              <li><a href="#" onClick={() => onNavigate('checkout')} className="hover:text-white transition-colors">Track Order</a></li>
             </ul>
           </div>
 
-          <div>
+          <div className="flex flex-col items-center">
             <h4 className="text-xs font-bold uppercase tracking-[0.2em] mb-6">Customer Care</h4>
             <ul className="space-y-4 text-sm text-zinc-400">
-              <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+              <li><a href="#" onClick={() => onNavigate('about')} className="hover:text-white transition-colors">About Us</a></li>
+              <li><a href="#" onClick={() => onNavigate('contact')} className="hover:text-white transition-colors">Contact Us</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Terms & Conditions</a></li>
             </ul>
@@ -973,26 +1942,75 @@ const Footer = () => {
 // --- Main App ---
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage, setCurrentPage] = useState(() => localStorage.getItem('elegan_page') || 'home');
   const [products, setProducts] = useState<Product[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [promoImageHero, setPromoImageHero] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const savedCart = localStorage.getItem('elegan_cart');
+      return savedCart ? JSON.parse(savedCart) : [];
+    } catch {
+      return [];
+    }
+  });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isUserOpen, setIsUserOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [orderSuccess, setOrderSuccess] = useState(false);
 
-  useEffect(() => {
+  const fetchProducts = () => {
     fetch('/api/products')
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch products');
+        return res.json();
+      })
+      .then(data => setProducts(data))
+      .catch(err => console.error('Product fetch error:', err));
+  };
+
+  const fetchBanners = () => {
+    fetch('/api/banners')
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch banners');
+        return res.json();
+      })
+      .then(data => setBanners(data))
+      .catch(err => console.error('Banner fetch error:', err));
+  };
+
+  const fetchPromoImage = () => {
+    fetch('/api/settings/promo_image_hero')
       .then(res => res.json())
-      .then(data => setProducts(data));
+      .then(data => setPromoImageHero(data.value))
+      .catch(err => console.error('Promo image fetch error:', err));
+  };
+
+  useEffect(() => {
+    fetchProducts();
+    fetchBanners();
+    fetchPromoImage();
     
     // Check local storage for user session
-    const savedUser = localStorage.getItem('elegan_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    try {
+      const savedUser = localStorage.getItem('elegan_user');
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+    } catch (err) {
+      console.error('User session error:', err);
     }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('elegan_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  useEffect(() => {
+    localStorage.setItem('elegan_page', currentPage);
+  }, [currentPage]);
 
   const handleLoginSuccess = (userData: User) => {
     setUser(userData);
@@ -1015,6 +2033,12 @@ export default function App() {
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
     setCurrentPage('product-details');
+    window.scrollTo(0, 0);
+  };
+
+  const handleBuyNow = (product: Product, size: number) => {
+    addToCart(product, size);
+    setCurrentPage('checkout');
     window.scrollTo(0, 0);
   };
 
@@ -1066,7 +2090,10 @@ export default function App() {
       <main className="flex-grow">
         {currentPage === 'home' && (
           <>
-            <Hero onShopNow={() => handleNavigate('shop')} />
+            <Hero 
+              onShopNow={() => handleNavigate('shop')} 
+              promoImage={promoImageHero}
+            />
             
             {/* Featured Section */}
             <section className="py-24 bg-white">
@@ -1074,10 +2101,13 @@ export default function App() {
                 <div className="text-center mb-16">
                   <h2 className="text-3xl md:text-5xl font-serif font-bold text-zinc-900">Explore Our Top Collections</h2>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10">
-                  {products.map(product => (
-                    <ProductCard key={product.id} product={product} onSelect={handleProductSelect} />
-                  ))}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-10">
+                  {products
+                    .filter(p => !p.category || p.category === 'Formal Pant')
+                    .map(product => (
+                      <ProductCard key={product.id} product={product} onSelect={handleProductSelect} />
+                    ))
+                  }
                 </div>
                 <div className="mt-16 text-center">
                   <button onClick={() => handleNavigate('shop')} className="btn-secondary">
@@ -1087,8 +2117,60 @@ export default function App() {
               </div>
             </section>
 
+            {/* Premium Shirts Section */}
+            <section className="py-24 bg-zinc-50">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-16">
+                  <h2 className="text-3xl md:text-5xl font-serif font-bold text-zinc-900">Premium Shirts</h2>
+                  <p className="text-zinc-500 mt-4">Discover our exclusive collection of formal shirts</p>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8 mb-24">
+                  {products
+                    .filter(p => p.category === 'Formal Shirt - Premium')
+                    .map(product => (
+                      <ProductCard key={product.id} product={product} onSelect={handleProductSelect} />
+                    ))
+                  }
+                </div>
+
+                {/* Reviews Section for Shirts */}
+                <div className="mt-24 pt-24 border-t border-zinc-200">
+                  <div className="text-center mb-16">
+                    <h3 className="text-2xl font-serif font-bold text-zinc-900">Customer Reviews</h3>
+                    <p className="text-zinc-500 mt-2">What our customers say about our Premium Shirts</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {[
+                      { name: "Sabbir Ahmed", rating: 5, comment: "The quality of the fabric is outstanding. Perfect fit for formal office wear.", date: "2 days ago" },
+                      { name: "Rahat Khan", rating: 5, comment: "I bought the Sky Blue one. The color is exactly as shown in the pictures. Highly recommended!", date: "1 week ago" },
+                      { name: "Tanvir Hossain", rating: 4, comment: "Very comfortable for long hours. The stitching is very professional.", date: "2 weeks ago" }
+                    ].map((review, i) => (
+                      <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-zinc-100">
+                        <div className="flex gap-1 mb-4 text-yellow-400">
+                          {[...Array(review.rating)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
+                        </div>
+                        <p className="text-zinc-600 text-sm mb-6 italic">"{review.comment}"</p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold uppercase tracking-widest">{review.name}</span>
+                          <span className="text-[10px] text-zinc-400 uppercase">{review.date}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-12 text-center">
+                    <button 
+                      onClick={() => handleNavigate('reviews')}
+                      className="text-sm font-bold uppercase tracking-widest text-zinc-900 hover:underline"
+                    >
+                      See More Reviews
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             {/* Trust Section */}
-            <section className="py-20 bg-zinc-50">
+            <section className="py-20 bg-white">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
                   <div className="flex flex-col items-center text-center">
@@ -1121,12 +2203,28 @@ export default function App() {
         {currentPage === 'shop' && (
           <section className="pt-32 pb-24">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-                <div>
-                  <h1 className="text-4xl font-serif font-bold text-zinc-900 mb-2">Formal Collection</h1>
-                  <p className="text-zinc-500">Showing all {products.length} products</p>
+              <div className="text-center mb-16">
+                <h1 className="text-4xl md:text-5xl font-serif font-bold text-zinc-900 mb-4">Collection</h1>
+                <p className="text-zinc-500">Showing {products.filter(p => !selectedCategory || p.category === selectedCategory).length} products</p>
+              </div>
+
+              <div className="flex flex-wrap justify-center gap-8 mb-12 border-b border-zinc-100 pb-8">
+                <div className="flex flex-col gap-2 min-w-[200px]">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Category</label>
+                  <select 
+                    className="bg-transparent border-b border-zinc-200 py-2 text-sm outline-none focus:border-zinc-900"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                  >
+                    <option value="">All Categories</option>
+                    <option value="Formal Pant">Formal Pant</option>
+                    <option value="Formal Shirt - Slim Fit">Formal Shirt - Slim Fit</option>
+                    <option value="Formal Shirt - Regular Fit">Formal Shirt - Regular Fit</option>
+                    <option value="Formal Shirt - Premium">Formal Shirt - Premium</option>
+                  </select>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex flex-col gap-2 min-w-[200px]">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Sort By</label>
                   <select className="bg-transparent border-b border-zinc-200 py-2 text-sm outline-none focus:border-zinc-900">
                     <option>Newest First</option>
                     <option>Price: Low to High</option>
@@ -1134,10 +2232,13 @@ export default function App() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10">
-                {products.map(product => (
-                  <ProductCard key={product.id} product={product} onSelect={handleProductSelect} />
-                ))}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-10">
+                {products
+                  .filter(product => !selectedCategory || product.category === selectedCategory)
+                  .map(product => (
+                    <ProductCard key={product.id} product={product} onSelect={handleProductSelect} />
+                  ))
+                }
               </div>
             </div>
           </section>
@@ -1148,6 +2249,7 @@ export default function App() {
             product={selectedProduct} 
             onAddToCart={addToCart} 
             onBack={() => handleNavigate('shop')} 
+            onBuyNow={handleBuyNow}
           />
         )}
 
@@ -1159,8 +2261,17 @@ export default function App() {
           />
         )}
 
+        {currentPage === 'reviews' && (
+          <ReviewsPage onBack={() => handleNavigate('home')} />
+        )}
+
         {currentPage === 'admin' && (
-          <AdminPanel onBack={() => handleNavigate('home')} />
+          <AdminPanel 
+            onBack={() => handleNavigate('home')} 
+            onRefreshProducts={fetchProducts}
+            onRefreshBanners={fetchBanners}
+            onRefreshPromoImage={fetchPromoImage}
+          />
         )}
 
         {currentPage === 'success' && (
@@ -1224,17 +2335,17 @@ export default function App() {
                 <div className="bg-zinc-50 p-8 text-center">
                   <Phone className="mx-auto mb-4 text-zinc-900" size={24} />
                   <h3 className="font-bold uppercase tracking-widest text-xs mb-2">Call Us</h3>
-                  <p className="text-zinc-600">+880 1700 000 000</p>
+                  <p className="text-zinc-600">+8801619835133</p>
+                </div>
+                <div className="bg-zinc-50 p-8 text-center">
+                  <Mail className="mx-auto mb-4 text-zinc-900" size={24} />
+                  <h3 className="font-bold uppercase tracking-widest text-xs mb-2">Email</h3>
+                  <p className="text-zinc-600">eleganbd.ltd@gmail.com</p>
                 </div>
                 <div className="bg-zinc-50 p-8 text-center">
                   <MessageCircle className="mx-auto mb-4 text-zinc-900" size={24} />
                   <h3 className="font-bold uppercase tracking-widest text-xs mb-2">WhatsApp</h3>
-                  <p className="text-zinc-600">+880 1700 000 000</p>
-                </div>
-                <div className="bg-zinc-50 p-8 text-center">
-                  <Facebook className="mx-auto mb-4 text-zinc-900" size={24} />
-                  <h3 className="font-bold uppercase tracking-widest text-xs mb-2">Facebook</h3>
-                  <p className="text-zinc-600">fb.com/eleganbd</p>
+                  <p className="text-zinc-600">+8801619835133</p>
                 </div>
               </div>
 
@@ -1261,48 +2372,59 @@ export default function App() {
           </section>
         )}
 
-        {currentPage === 'size-guide' && (
+        {currentPage === 'returns-policy' && (
           <section className="pt-32 pb-24">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-              <h1 className="text-4xl font-serif font-bold text-zinc-900 mb-8 text-center">Size Guide</h1>
-              <p className="text-center text-zinc-600 mb-12">Find your perfect fit with our detailed size chart. All measurements are in inches.</p>
+              <h1 className="text-4xl font-serif font-bold text-zinc-900 mb-8 text-center">Returns & Exchange Policy</h1>
               
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-zinc-900 text-white">
-                      <th className="p-4 text-xs font-bold uppercase tracking-widest">Size (Waist)</th>
-                      <th className="p-4 text-xs font-bold uppercase tracking-widest">Length</th>
-                      <th className="p-4 text-xs font-bold uppercase tracking-widest">Thigh</th>
-                      <th className="p-4 text-xs font-bold uppercase tracking-widest">Leg Opening</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm">
-                    {[28, 30, 32, 34, 36, 38].map((size, idx) => (
-                      <tr key={size} className={idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50'}>
-                        <td className="p-4 font-bold">{size}</td>
-                        <td className="p-4">39.5</td>
-                        <td className="p-4">{11 + idx * 0.5}</td>
-                        <td className="p-4">{6 + idx * 0.25}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-12">
-                <div>
-                  <h3 className="text-xl font-serif font-bold mb-4">How to Measure</h3>
-                  <ul className="space-y-4 text-zinc-600 text-sm">
-                    <li><strong>Waist:</strong> Measure around your natural waistline, keeping the tape slightly loose.</li>
-                    <li><strong>Length:</strong> Measure from the top of the waistband down to the ankle.</li>
-                    <li><strong>Thigh:</strong> Measure the widest part of your thigh.</li>
-                  </ul>
+              <div className="prose prose-zinc max-w-none space-y-8 text-zinc-600">
+                <div className="bg-zinc-50 p-8 rounded-xl border border-zinc-100">
+                  <h3 className="text-xl font-serif font-bold text-zinc-900 mb-4">3-Day Exchange Policy</h3>
+                  <p className="text-sm leading-relaxed">
+                    We want you to be completely satisfied with your purchase. If the size doesn't fit or you're not happy with the product, you can exchange it within 3 days of receiving your order.
+                  </p>
                 </div>
-                <div className="bg-zinc-50 p-6">
-                  <h3 className="text-lg font-serif font-bold mb-2">Need Help?</h3>
-                  <p className="text-sm text-zinc-500 mb-4">If you're between sizes, we recommend going for the larger size for a more comfortable fit.</p>
-                  <button onClick={() => handleNavigate('contact')} className="text-zinc-900 font-bold underline text-sm">Contact Support</button>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-serif font-bold text-zinc-900">Conditions for Exchange</h3>
+                    <ul className="list-disc pl-5 space-y-2 text-sm">
+                      <li>Product must be unused and unwashed.</li>
+                      <li>Original tags and packaging must be intact.</li>
+                      <li>Proof of purchase (invoice/order ID) is required.</li>
+                      <li>Exchange is subject to stock availability.</li>
+                    </ul>
+                  </div>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-serif font-bold text-zinc-900">Non-Returnable Items</h3>
+                    <ul className="list-disc pl-5 space-y-2 text-sm">
+                      <li>Items on clearance or flash sale.</li>
+                      <li>Products with visible signs of wear or damage.</li>
+                      <li>Customized or altered garments.</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="border-t border-zinc-100 pt-8">
+                  <h3 className="text-xl font-serif font-bold text-zinc-900 mb-4">How to Initiate a Return</h3>
+                  <p className="text-sm leading-relaxed mb-4">
+                    To start an exchange or return process, please contact our customer support team via WhatsApp or Phone within 72 hours of delivery.
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    <a href="tel:+8801700000000" className="inline-flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-zinc-800 transition-colors">
+                      <Phone size={16} /> Call Support
+                    </a>
+                    <a href="https://wa.me/8801700000000" className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-green-700 transition-colors">
+                      <MessageCircle size={16} /> WhatsApp Us
+                    </a>
+                  </div>
+                </div>
+
+                <div className="bg-zinc-900 text-white p-8 rounded-xl">
+                  <h3 className="text-xl font-serif font-bold mb-4">Refund Policy</h3>
+                  <p className="text-sm opacity-80 leading-relaxed">
+                    Refunds are only processed if the product is found to have a manufacturing defect and a replacement is not available. Refunds will be issued to the original payment method within 7-10 working days.
+                  </p>
                 </div>
               </div>
             </div>
@@ -1310,7 +2432,7 @@ export default function App() {
         )}
       </main>
 
-      <Footer />
+      <Footer onNavigate={handleNavigate} />
 
       <CartDrawer 
         isOpen={isCartOpen} 
