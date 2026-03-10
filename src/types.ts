@@ -45,6 +45,8 @@ export interface Banner {
   id: number;
   image: string;
   title: string;
+  subtitle?: string;
+  buttonText?: string;
   link: string;
   created_at: string;
 }
@@ -57,5 +59,15 @@ export interface Coupon {
   min_purchase: number;
   expiry_date: string;
   is_active: number;
+  created_at: string;
+}
+
+export interface Review {
+  id: number;
+  product_id: number;
+  user_id: number;
+  user_name: string;
+  rating: number;
+  comment: string;
   created_at: string;
 }

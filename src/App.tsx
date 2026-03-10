@@ -12,7 +12,6 @@ import {
   Phone, 
   Facebook, 
   Instagram, 
-  ChevronRight, 
   Star, 
   Truck, 
   ShieldCheck, 
@@ -31,9 +30,11 @@ import {
   Ticket,
   Package,
   Settings,
-  LogOut
+  LogOut,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
-import { Product, CartItem, User, Order, Banner, Coupon } from './types';
+import { Product, CartItem, User, Order, Banner, Coupon, Review } from './types';
 
 // --- Components ---
 
@@ -42,7 +43,7 @@ const Logo = ({ className = "", light = true }: { className?: string, light?: bo
     <img 
       src="https://i.postimg.cc/csPJTT4H/1000047673-removebg-preview.png" 
       alt="Elegan BD Logo" 
-      className="w-10 h-10 object-contain rounded-full border border-white/20"
+      className="w-14 h-14 object-contain"
       referrerPolicy="no-referrer"
     />
     <span className={`text-xl font-serif font-bold tracking-tighter uppercase whitespace-nowrap ${light ? 'text-white' : 'text-black'}`}>
@@ -59,6 +60,13 @@ const Navbar = ({ cartCount, onOpenCart, onOpenUser, onNavigate, user }: {
   user: User | null
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const navLinks = [
     { name: 'Home', id: 'home' },
@@ -66,34 +74,33 @@ const Navbar = ({ cartCount, onOpenCart, onOpenUser, onNavigate, user }: {
     { name: 'About Us', id: 'about' },
     { name: 'Returns & Exchange', id: 'returns-policy' },
     { name: 'Contact', id: 'contact' },
-    { name: 'Admin', id: 'admin' },
   ];
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 bg-black border-b border-white/10">
+    <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-black/90 backdrop-blur-md py-2' : 'bg-black py-4'} border-b border-white/10`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
-          {/* Left: Menu Icon */}
-          <div className="flex items-center">
+        <div className="flex justify-between items-center h-16 md:h-20">
+          {/* Left: Menu Icon (Mobile) */}
+          <div className="flex items-center lg:hidden">
             <button 
               className="p-2 text-white hover:bg-white/10 transition-colors"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
-            
-            {/* Desktop Nav Links */}
-            <div className="hidden lg:flex ml-8 space-x-6">
-              {navLinks.map((link) => (
-                <button
-                  key={link.id}
-                  onClick={() => onNavigate(link.id)}
-                  className="text-[10px] font-bold text-white/60 hover:text-white transition-colors uppercase tracking-[0.2em]"
-                >
-                  {link.name}
-                </button>
-              ))}
-            </div>
+          </div>
+          
+          {/* Desktop Nav Links (Left) */}
+          <div className="hidden lg:flex items-center space-x-8">
+            {navLinks.slice(0, 3).map((link) => (
+              <button
+                key={link.id}
+                onClick={() => onNavigate(link.id)}
+                className="text-[10px] font-bold text-white/60 hover:text-white transition-colors uppercase tracking-[0.2em]"
+              >
+                {link.name}
+              </button>
+            ))}
           </div>
 
           {/* Center: Logo */}
@@ -106,30 +113,44 @@ const Navbar = ({ cartCount, onOpenCart, onOpenUser, onNavigate, user }: {
             </button>
           </div>
 
-          {/* Right: Cart & User */}
-          <div className="flex items-center space-x-2">
-            <button 
-              onClick={onOpenUser}
-              className="p-2 text-white hover:text-white/70 transition-colors flex items-center gap-2"
-            >
-              <UserIcon size={20} />
-              {user && user.name && (
-                <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest">
-                  {user.name.split(' ')[0]}
-                </span>
-              )}
-            </button>
-            <button 
-              onClick={onOpenCart}
-              className="relative p-2 text-white hover:text-white/70 transition-colors"
-            >
-              <ShoppingBag size={20} />
-              {cartCount > 0 && (
-                <span className="absolute top-0 right-0 bg-white text-black text-[8px] font-bold px-1.5 py-0.5 rounded-full">
-                  {cartCount}
-                </span>
-              )}
-            </button>
+          {/* Right: Icons & Desktop Nav (Right) */}
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="hidden lg:flex items-center space-x-8 mr-8">
+              {navLinks.slice(3).map((link) => (
+                <button
+                  key={link.id}
+                  onClick={() => onNavigate(link.id)}
+                  className="text-[10px] font-bold text-white/60 hover:text-white transition-colors uppercase tracking-[0.2em]"
+                >
+                  {link.name}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center space-x-1 md:space-x-2">
+              <button 
+                onClick={onOpenUser}
+                className="p-2 text-white hover:text-white/70 transition-colors flex items-center gap-2"
+              >
+                <UserIcon size={20} />
+                {user && user.name && (
+                  <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest">
+                    {user.name.split(' ')[0]}
+                  </span>
+                )}
+              </button>
+              <button 
+                onClick={onOpenCart}
+                className="relative p-2 text-white hover:text-white/70 transition-colors"
+              >
+                <ShoppingBag size={20} />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-white text-black text-[9px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-lg">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -426,92 +447,112 @@ const ReviewsPage = ({ onBack }: { onBack: () => void }) => {
 const Hero = ({ onShopNow, promoImage }: { onShopNow: () => void, promoImage?: string }) => {
   return (
     <div className="pt-20">
-      <section className="relative h-[40vh] sm:h-[50vh] lg:h-[60vh] overflow-hidden">
+      <section className="relative w-full overflow-hidden bg-zinc-50 flex items-center justify-center">
         <img 
-          src="https://i.postimg.cc/3YQDcY30/file-000000009834720782e584db1467b407.png" 
+          src="https://i.imgur.com/Vriu71z.png" 
           alt="Hero Model" 
-          className="w-full h-full object-cover object-top"
+          className="w-full h-auto max-h-[85vh] object-contain"
           referrerPolicy="no-referrer"
         />
       </section>
-      
-      <div className="bg-white py-12 border-b border-zinc-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="flex flex-col sm:flex-row justify-center gap-4"
-          >
-            <button onClick={onShopNow} className="btn-primary px-12">
-              Shop Now
-            </button>
-            <button onClick={onShopNow} className="btn-secondary px-12">
-              View Collection
-            </button>
-          </motion.div>
-
-          {promoImage && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
-              className="mt-12 flex justify-center"
-            >
-              <img 
-                src={promoImage} 
-                alt="Promo Banner" 
-                className="max-w-5xl w-full rounded-2xl shadow-xl border border-zinc-100" 
-                referrerPolicy="no-referrer" 
-              />
-            </motion.div>
-          )}
-        </div>
-      </div>
     </div>
   );
 };
 
-const OfferSlider = ({ banners }: { banners: Banner[] }) => {
+const BannerCarousel = ({ banners }: { banners: Banner[] }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const displayItems = banners;
 
   useEffect(() => {
-    if (displayItems.length <= 1) return;
+    if (banners.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % displayItems.length);
-    }, 4000);
+      setCurrentIndex((prev) => (prev + 1) % banners.length);
+    }, 5000);
     return () => clearInterval(interval);
-  }, [displayItems.length]);
+  }, [banners.length]);
 
-  if (displayItems.length === 0) return null;
+  if (banners.length === 0) return null;
 
-  const currentItem = displayItems[currentIndex];
+  const next = () => setCurrentIndex((prev) => (prev + 1) % banners.length);
+  const prev = () => setCurrentIndex((prev) => (prev - 1 + banners.length) % banners.length);
 
   return (
-    <motion.div 
-      whileHover={{ scale: 1.01 }}
-      onClick={() => {
-        if (currentItem.link) {
-          window.location.href = currentItem.link;
-        }
-      }}
-      className="relative aspect-[3/2] bg-zinc-100 overflow-hidden flex items-center justify-center group cursor-pointer w-full max-w-4xl rounded-xl shadow-lg border border-zinc-100"
-    >
+    <div className="relative w-full h-[300px] md:h-[500px] overflow-hidden bg-zinc-100">
       <AnimatePresence mode="wait">
-        <motion.img
-          key={currentItem?.id || currentIndex}
-          src={currentItem?.image}
-          alt="Banner"
+        <motion.div
+          key={currentIndex}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.5 }}
-          className="absolute inset-0 w-full h-full object-cover"
-          referrerPolicy="no-referrer"
-        />
+          transition={{ duration: 0.7 }}
+          className="absolute inset-0"
+        >
+          <div className="absolute inset-0 bg-black/30 z-10" />
+          <img
+            src={banners[currentIndex].image}
+            alt={banners[currentIndex].title}
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4">
+            <motion.h2
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-white text-3xl md:text-6xl font-serif font-bold mb-4 tracking-tight"
+            >
+              {banners[currentIndex].title}
+            </motion.h2>
+            {banners[currentIndex].subtitle && (
+              <motion.p
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-white/90 text-sm md:text-xl mb-8 max-w-2xl font-light"
+              >
+                {banners[currentIndex].subtitle}
+              </motion.p>
+            )}
+            <motion.button
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => banners[currentIndex].link && (window.location.href = banners[currentIndex].link)}
+              className="bg-white text-black px-8 py-3 rounded-full text-xs md:text-sm font-bold uppercase tracking-widest hover:bg-zinc-100 transition-colors shadow-lg"
+            >
+              {banners[currentIndex].buttonText || 'Shop Now'}
+            </motion.button>
+          </div>
+        </motion.div>
       </AnimatePresence>
-    </motion.div>
+
+      {banners.length > 1 && (
+        <>
+          <button
+            onClick={prev}
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-colors"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <button
+            onClick={next}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-colors"
+          >
+            <ChevronRight size={24} />
+          </button>
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex gap-2">
+            {banners.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentIndex(i)}
+                className={`w-2 h-2 rounded-full transition-all ${i === currentIndex ? 'bg-white w-6' : 'bg-white/40'}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 };
 
@@ -522,45 +563,97 @@ const ProductCard = ({ product, onSelect }: { product: Product, onSelect: (p: Pr
       className="group cursor-pointer"
       onClick={() => onSelect(product)}
     >
-      <div className="relative aspect-[3/4] overflow-hidden bg-white mb-4 rounded-2xl border border-zinc-100">
+      <div className="relative overflow-hidden bg-white mb-4 rounded-xl md:rounded-2xl border border-zinc-100 shadow-sm group-hover:shadow-md transition-all duration-300">
         <img 
           src={product.image} 
           alt={product.name} 
-          className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110"
+          className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-110"
           referrerPolicy="no-referrer"
         />
         {product.originalPrice > product.price && (
-          <div className="absolute top-4 left-4 bg-zinc-900 text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider">
+          <div className="absolute top-2 left-2 md:top-4 md:left-4 bg-zinc-900 text-white text-[8px] md:text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded-sm">
             Sale
           </div>
         )}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100">
-          <button className="bg-white text-zinc-900 px-6 py-2 text-xs font-bold uppercase tracking-widest shadow-xl">
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 flex items-end justify-center pb-4 md:pb-6 opacity-0 group-hover:opacity-100">
+          <button className="bg-white text-zinc-900 px-4 md:px-6 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
             Quick View
           </button>
         </div>
       </div>
-      <h3 className="text-sm font-medium text-zinc-900 mb-1 uppercase tracking-tight">{product.name}</h3>
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-bold text-zinc-900">৳{product.price}</span>
-        {product.originalPrice > product.price && (
-          <span className="text-xs text-zinc-400 line-through">৳{product.originalPrice}</span>
-        )}
+      <div className="px-1 text-center md:text-left">
+        <h3 className="text-sm md:text-lg font-bold text-zinc-900 mb-1 uppercase tracking-tight truncate">{product.name}</h3>
+        <div className="flex items-center justify-center md:justify-start gap-2">
+          <span className="text-sm md:text-lg font-bold text-zinc-900">৳{product.price}</span>
+          {product.originalPrice > product.price && (
+            <span className="text-xs md:text-sm text-zinc-400 line-through">৳{product.originalPrice}</span>
+          )}
+        </div>
       </div>
     </motion.div>
   );
 };
 
-const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow }: { 
+const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow, user }: { 
   product: Product, 
   onAddToCart: (p: Product, size: number) => void, 
   onBack: () => void,
-  onBuyNow: (p: Product, size: number) => void
+  onBuyNow: (p: Product, size: number) => void,
+  user: User | null
 }) => {
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [activeImage, setActiveImage] = useState(product.image);
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
   const [isZoomed, setIsZoomed] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [product.id]);
+
+  const fetchReviews = async () => {
+    try {
+      const res = await fetch(`/api/products/${product.id}/reviews`);
+      const data = await res.json();
+      setReviews(data);
+    } catch (error) {
+      console.error("Failed to fetch reviews:", error);
+    }
+  };
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      alert("Please login to leave a review");
+      return;
+    }
+    if (!newReview.comment.trim()) return;
+
+    setIsSubmittingReview(true);
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_id: product.id,
+          user_id: user.id,
+          user_name: user.name,
+          rating: newReview.rating,
+          comment: newReview.comment
+        })
+      });
+      if (res.ok) {
+        setNewReview({ rating: 5, comment: '' });
+        fetchReviews();
+      }
+    } catch (error) {
+      console.error("Failed to submit review:", error);
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
@@ -583,7 +676,7 @@ const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow }: {
         {/* Images */}
         <div className="space-y-4">
           <div 
-            className="aspect-[3/4] bg-white overflow-hidden relative cursor-zoom-in rounded-2xl border border-zinc-100"
+            className="bg-white overflow-hidden relative cursor-zoom-in rounded-2xl border border-zinc-100"
             onMouseEnter={() => setIsZoomed(true)}
             onMouseLeave={() => setIsZoomed(false)}
             onMouseMove={handleMouseMove}
@@ -591,7 +684,7 @@ const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow }: {
             <img 
               src={activeImage} 
               alt={product.name} 
-              className={`w-full h-full object-contain transition-transform duration-200 ${isZoomed ? 'scale-[2]' : 'scale-100'}`}
+              className={`w-full h-auto object-cover transition-transform duration-200 ${isZoomed ? 'scale-[2]' : 'scale-100'}`}
               style={{
                 transformOrigin: isZoomed ? `${zoomPos.x}% ${zoomPos.y}%` : 'center'
               }}
@@ -634,12 +727,12 @@ const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow }: {
 
           <div className="mb-8">
             <h4 className="text-sm font-bold uppercase tracking-widest mb-4">Select Size</h4>
-            <div className="grid grid-cols-6 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
               {product.sizes.map(size => (
                 <button
                   key={size}
                   onClick={() => setSelectedSize(size)}
-                  className={`py-3 text-sm font-medium border ${selectedSize === size ? 'bg-zinc-900 text-white border-zinc-900' : 'border-zinc-200 text-zinc-600 hover:border-zinc-900'}`}
+                  className={`py-3 text-sm font-medium border transition-all ${selectedSize === size ? 'bg-zinc-900 text-white border-zinc-900' : 'border-zinc-200 text-zinc-600 hover:border-zinc-900'}`}
                 >
                   {size}
                 </button>
@@ -691,6 +784,103 @@ const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow }: {
             <div className="text-center">
               <RefreshCw size={20} className="mx-auto mb-2 text-zinc-400" />
               <span className="text-[10px] font-bold uppercase tracking-widest">Easy Return</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Reviews Section */}
+      <div className="mt-24 border-t border-zinc-100 pt-16">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
+          {/* Review Stats & Form */}
+          <div className="lg:col-span-1">
+            <h2 className="text-2xl font-serif font-bold text-zinc-900 mb-6">Customer Reviews</h2>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="text-5xl font-bold text-zinc-900">{product.rating}</div>
+              <div>
+                <div className="flex text-zinc-900 mb-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={16} fill={i < Math.round(product.rating) ? "currentColor" : "none"} />
+                  ))}
+                </div>
+                <p className="text-sm text-zinc-500">Based on {reviews.length} reviews</p>
+              </div>
+            </div>
+
+            {/* Review Form */}
+            <div className="bg-zinc-50 p-6 rounded-2xl">
+              <h3 className="font-bold uppercase tracking-widest text-xs mb-4">Write a Review</h3>
+              {user ? (
+                <form onSubmit={handleReviewSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Rating</label>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setNewReview({ ...newReview, rating: star })}
+                          className={`p-1 transition-colors ${newReview.rating >= star ? 'text-zinc-900' : 'text-zinc-300'}`}
+                        >
+                          <Star size={20} fill={newReview.rating >= star ? "currentColor" : "none"} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Comment</label>
+                    <textarea
+                      value={newReview.comment}
+                      onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                      className="w-full bg-white border border-zinc-200 rounded-lg p-3 text-sm focus:outline-none focus:border-zinc-900 min-h-[100px]"
+                      placeholder="Share your thoughts about this product..."
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingReview}
+                    className="w-full btn-primary py-3 text-xs"
+                  >
+                    {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
+                  </button>
+                </form>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-zinc-600 mb-4">Please login to share your experience with this product.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Review List */}
+          <div className="lg:col-span-2">
+            <div className="space-y-8">
+              {reviews.length > 0 ? (
+                reviews.map((review) => (
+                  <div key={review.id} className="border-b border-zinc-100 pb-8 last:border-0">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h4 className="font-bold text-zinc-900">{review.user_name}</h4>
+                        <div className="flex text-zinc-900 mt-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} size={12} fill={i < review.rating ? "currentColor" : "none"} />
+                          ))}
+                        </div>
+                      </div>
+                      <span className="text-xs text-zinc-400">
+                        {new Date(review.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="text-zinc-600 text-sm leading-relaxed">{review.comment}</p>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12 bg-zinc-50 rounded-2xl">
+                  <MessageCircle size={40} className="mx-auto mb-4 text-zinc-300" />
+                  <p className="text-zinc-500">No reviews yet. Be the first to review this product!</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1041,9 +1231,9 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
   const [promoImage, setPromoImage] = useState('');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
+  const [email, setEmail] = useState('info@eleganbd.com');
+  const [password, setPassword] = useState('eleganbd2026@#@#ssn');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   
@@ -1067,6 +1257,8 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
   const [bannerFormData, setBannerFormData] = useState({
     image: '',
     title: '',
+    subtitle: '',
+    button_text: 'Shop Now',
     link: ''
   });
 
@@ -1132,7 +1324,7 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email === 'eleganbd.ltd@gmail.com' && password === 'eleganbd2026@@##') {
+    if (email === 'info@eleganbd.com' && password === 'eleganbd2026@#@#ssn') {
       setIsAuthenticated(true);
     } else {
       alert('Incorrect email or password');
@@ -1263,7 +1455,7 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
       });
       if (res.ok) {
         setShowBannerForm(false);
-        setBannerFormData({ image: '', title: '', link: '' });
+        setBannerFormData({ image: '', title: '', subtitle: '', button_text: 'Shop Now', link: '' });
         fetch('/api/banners')
           .then(res => res.json())
           .then(data => setBanners(data));
@@ -1403,27 +1595,47 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
 
   return (
     <div className="flex min-h-screen bg-zinc-50 pt-20">
+      {/* Sidebar Toggle (Mobile) */}
+      <button 
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        className="lg:hidden fixed bottom-6 right-6 z-[60] bg-zinc-900 text-white p-4 rounded-full shadow-2xl"
+      >
+        {isSidebarOpen ? <X size={24} /> : <LayoutDashboard size={24} />}
+      </button>
+
       {/* Sidebar */}
       <motion.aside 
         initial={false}
-        animate={{ width: isSidebarOpen ? 280 : 0, opacity: isSidebarOpen ? 1 : 0 }}
-        className="bg-white border-r border-zinc-200 overflow-hidden fixed h-full z-40"
+        animate={{ 
+          width: isSidebarOpen ? (window.innerWidth < 1024 ? '100%' : 280) : 0, 
+          opacity: isSidebarOpen ? 1 : 0,
+          x: isSidebarOpen ? 0 : -280
+        }}
+        className="bg-white border-r border-zinc-200 overflow-hidden fixed h-full z-50 lg:z-40"
       >
-        <div className="p-6">
-          <Logo light={false} className="mb-10" />
-          <nav className="space-y-1">
+        <div className="p-6 h-full flex flex-col">
+          <div className="flex justify-between items-center mb-10">
+            <Logo light={false} />
+            <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2">
+              <X size={20} />
+            </button>
+          </div>
+          <nav className="space-y-1 flex-1 overflow-y-auto">
             {menuItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                }}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold uppercase tracking-widest transition-colors rounded-lg ${
                   activeTab === item.id 
                     ? 'bg-zinc-900 text-white' 
-                    : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
+                    : 'text-zinc-500 hover:bg-zinc-100'
                 }`}
               >
                 {item.icon}
-                {item.name}
+                <span>{item.name}</span>
               </button>
             ))}
           </nav>
@@ -1440,7 +1652,7 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
       </motion.aside>
 
       {/* Main Content */}
-      <main className={`flex-grow transition-all duration-300 ${isSidebarOpen ? 'ml-[280px]' : 'ml-0'}`}>
+      <main className={`flex-grow transition-all duration-300 ${isSidebarOpen ? 'lg:ml-[280px]' : 'ml-0'}`}>
         <header className="bg-white border-b border-zinc-200 h-20 flex items-center justify-between px-8 sticky top-20 z-30">
           <div className="flex items-center gap-4">
             <button 
@@ -1660,7 +1872,7 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
                 <h3 className="text-xl font-serif font-bold">Banner Management</h3>
                 <button 
                   onClick={() => {
-                    setBannerFormData({ image: '', link: '' });
+                    setBannerFormData({ image: '', title: '', subtitle: '', button_text: 'Shop Now', link: '' });
                     setShowBannerForm(true);
                   }}
                   className="btn-primary py-2 px-6 flex items-center gap-2 text-xs"
@@ -1676,7 +1888,7 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
                       <h3 className="text-2xl font-serif font-bold">Add New Banner</h3>
                       <button onClick={() => setShowBannerForm(false)}><X size={24} /></button>
                     </div>
-                    <form onSubmit={handleBannerSubmit} className="space-y-6">
+                    <form onSubmit={handleBannerSubmit} className="space-y-4">
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Banner Image</label>
                         <div className="flex gap-4 items-center">
@@ -1689,6 +1901,18 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
                             <input className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900 text-sm mt-2" value={bannerFormData.image} onChange={e => setBannerFormData({...bannerFormData, image: e.target.value})} placeholder="https://..." />
                           </div>
                         </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Title</label>
+                        <input className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={bannerFormData.title} onChange={e => setBannerFormData({...bannerFormData, title: e.target.value})} placeholder="EID SPECIAL COLLECTION" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Subtitle</label>
+                        <input className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={bannerFormData.subtitle} onChange={e => setBannerFormData({...bannerFormData, subtitle: e.target.value})} placeholder="Up to 40% Off" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Button Text</label>
+                        <input className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={bannerFormData.button_text} onChange={e => setBannerFormData({...bannerFormData, button_text: e.target.value})} placeholder="Shop Now" />
                       </div>
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Link (Optional)</label>
@@ -1888,51 +2112,80 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
 
 const Footer = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
   return (
-    <footer className="bg-zinc-900 text-white pt-20 pb-10">
+    <footer className="bg-zinc-900 text-white pt-16 md:pt-24 pb-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16 text-center">
-          <div className="flex flex-col items-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+          <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
             <Logo className="mb-6" />
-            <p className="text-zinc-400 text-sm leading-relaxed mb-6 max-w-xs">
+            <p className="text-zinc-400 text-sm leading-relaxed mb-8 max-w-xs">
               Premium formal wear for the modern gentleman. Crafted with precision, designed for elegance.
             </p>
-            <div className="space-y-4">
-              <p className="text-zinc-400 text-sm">
-                <span className="text-white font-bold uppercase tracking-widest text-[10px] block mb-1">Email</span>
-                eleganbd.ltd@gmail.com
-              </p>
-              <p className="text-zinc-400 text-sm">
-                <span className="text-white font-bold uppercase tracking-widest text-[10px] block mb-1">Phone</span>
-                +8801619835133
-              </p>
+            <div className="flex gap-4">
+              <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
+                <Facebook size={18} />
+              </a>
+              <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
+                <Instagram size={18} />
+              </a>
+              <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
+                <Phone size={18} />
+              </a>
             </div>
           </div>
           
-          <div className="flex flex-col items-center">
-            <h4 className="text-xs font-bold uppercase tracking-[0.2em] mb-6">Quick Links</h4>
+          <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+            <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-8 text-white/50">Quick Links</h4>
             <ul className="space-y-4 text-sm text-zinc-400">
-              <li><a href="#" onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Shop All</a></li>
-              <li><a href="#" onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">New Arrivals</a></li>
-              <li><a href="#" onClick={() => onNavigate('returns-policy')} className="hover:text-white transition-colors">Returns & Exchange Policy</a></li>
-              <li><a href="#" onClick={() => onNavigate('checkout')} className="hover:text-white transition-colors">Track Order</a></li>
+              <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">Shop All</button></li>
+              <li><button onClick={() => onNavigate('shop')} className="hover:text-white transition-colors">New Arrivals</button></li>
+              <li><button onClick={() => onNavigate('returns-policy')} className="hover:text-white transition-colors">Returns & Exchange</button></li>
             </ul>
           </div>
 
-          <div className="flex flex-col items-center">
-            <h4 className="text-xs font-bold uppercase tracking-[0.2em] mb-6">Customer Care</h4>
+          <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+            <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-8 text-white/50">Customer Care</h4>
             <ul className="space-y-4 text-sm text-zinc-400">
-              <li><a href="#" onClick={() => onNavigate('about')} className="hover:text-white transition-colors">About Us</a></li>
-              <li><a href="#" onClick={() => onNavigate('contact')} className="hover:text-white transition-colors">Contact Us</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Terms & Conditions</a></li>
+              <li><button onClick={() => onNavigate('about')} className="hover:text-white transition-colors">About Us</button></li>
+              <li><button onClick={() => onNavigate('contact')} className="hover:text-white transition-colors">Contact Us</button></li>
+              <li><button className="hover:text-white transition-colors">Privacy Policy</button></li>
+              <li><button className="hover:text-white transition-colors">Terms & Conditions</button></li>
             </ul>
+          </div>
+
+          <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+            <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-8 text-white/50">Contact Info</h4>
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 group cursor-pointer">
+                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                  <Mail size={16} className="text-zinc-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Email Us</p>
+                  <p className="text-sm text-zinc-300">info@eleganbd.com</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 group cursor-pointer">
+                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                  <Phone size={16} className="text-zinc-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Call Us</p>
+                  <p className="text-sm text-zinc-300">+8801619835133</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         
         <div className="border-t border-zinc-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-zinc-500">
-            © 2026 ELEGAN BD. All Rights Reserved.
-          </p>
+          <div className="text-center md:text-left">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+              © 2026 ELEGAN BD. All Rights Reserved.
+            </p>
+            <p className="text-[9px] font-medium uppercase tracking-[0.2em] text-zinc-600 mt-1">
+              Developed by Sabbir Rahman
+            </p>
+          </div>
         </div>
       </div>
     </footer>
@@ -1942,6 +2195,7 @@ const Footer = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
 // --- Main App ---
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const [currentPage, setCurrentPage] = useState(() => localStorage.getItem('elegan_page') || 'home');
   const [products, setProducts] = useState<Product[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
@@ -1993,6 +2247,10 @@ export default function App() {
     fetchBanners();
     fetchPromoImage();
     
+    const splashTimer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2500);
+
     // Check local storage for user session
     try {
       const savedUser = localStorage.getItem('elegan_user');
@@ -2078,7 +2336,55 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col font-sans selection:bg-zinc-900 selection:text-white">
+      <AnimatePresence>
+        {showSplash && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+            className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              className="relative"
+            >
+              <img 
+                src="https://i.postimg.cc/csPJTT4H/1000047673-removebg-preview.png" 
+                alt="Elegan BD Logo" 
+                className="w-32 h-32 md:w-48 md:h-48 object-contain"
+                referrerPolicy="no-referrer"
+              />
+              <motion.div 
+                className="absolute -inset-4 border-2 border-white/20 rounded-full"
+                animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.5, 0.2] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+            </motion.div>
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="mt-8 text-center"
+            >
+              <h1 className="text-white text-2xl md:text-4xl font-serif font-bold tracking-[0.3em] uppercase">Elegan BD</h1>
+              <div className="mt-4 flex gap-1 justify-center">
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    className="w-1.5 h-1.5 bg-white rounded-full"
+                    animate={{ opacity: [0.2, 1, 0.2] }}
+                    transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Navbar 
         cartCount={cart.reduce((sum, i) => sum + i.quantity, 0)} 
         onOpenCart={() => setIsCartOpen(true)}
@@ -2096,12 +2402,15 @@ export default function App() {
             />
             
             {/* Featured Section */}
-            <section className="py-24 bg-white">
+            <section className="py-16 md:py-32 bg-white">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-16">
-                  <h2 className="text-3xl md:text-5xl font-serif font-bold text-zinc-900">Explore Our Top Collections</h2>
+                <div className="text-center mb-12 md:mb-20">
+                  <h2 className="text-3xl md:text-6xl font-serif font-bold text-zinc-900 mb-6 tracking-tight">Explore Our Top Collections</h2>
+                  <p className="max-w-2xl mx-auto text-zinc-500 text-sm md:text-lg leading-relaxed">
+                    আপনার প্রতিদিনের অফিস ও ফরমাল লুককে আরও স্টাইলিশ করতে আমাদের প্রিমিয়াম ফরমাল প্যান্ট কালেকশন। নিখুঁত ফিটিং, আরামদায়ক ফেব্রিক ও এলিগেন্ট কালার—সব একসাথে।
+                  </p>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-10">
+                <div className="grid grid-cols-1 gap-10 max-w-md mx-auto">
                   {products
                     .filter(p => !p.category || p.category === 'Formal Pant')
                     .map(product => (
@@ -2109,90 +2418,33 @@ export default function App() {
                     ))
                   }
                 </div>
-                <div className="mt-16 text-center">
-                  <button onClick={() => handleNavigate('shop')} className="btn-secondary">
-                    View All Products
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            {/* Premium Shirts Section */}
-            <section className="py-24 bg-zinc-50">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-16">
-                  <h2 className="text-3xl md:text-5xl font-serif font-bold text-zinc-900">Premium Shirts</h2>
-                  <p className="text-zinc-500 mt-4">Discover our exclusive collection of formal shirts</p>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8 mb-24">
-                  {products
-                    .filter(p => p.category === 'Formal Shirt - Premium')
-                    .map(product => (
-                      <ProductCard key={product.id} product={product} onSelect={handleProductSelect} />
-                    ))
-                  }
-                </div>
-
-                {/* Reviews Section for Shirts */}
-                <div className="mt-24 pt-24 border-t border-zinc-200">
-                  <div className="text-center mb-16">
-                    <h3 className="text-2xl font-serif font-bold text-zinc-900">Customer Reviews</h3>
-                    <p className="text-zinc-500 mt-2">What our customers say about our Premium Shirts</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {[
-                      { name: "Sabbir Ahmed", rating: 5, comment: "The quality of the fabric is outstanding. Perfect fit for formal office wear.", date: "2 days ago" },
-                      { name: "Rahat Khan", rating: 5, comment: "I bought the Sky Blue one. The color is exactly as shown in the pictures. Highly recommended!", date: "1 week ago" },
-                      { name: "Tanvir Hossain", rating: 4, comment: "Very comfortable for long hours. The stitching is very professional.", date: "2 weeks ago" }
-                    ].map((review, i) => (
-                      <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-zinc-100">
-                        <div className="flex gap-1 mb-4 text-yellow-400">
-                          {[...Array(review.rating)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
-                        </div>
-                        <p className="text-zinc-600 text-sm mb-6 italic">"{review.comment}"</p>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold uppercase tracking-widest">{review.name}</span>
-                          <span className="text-[10px] text-zinc-400 uppercase">{review.date}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-12 text-center">
-                    <button 
-                      onClick={() => handleNavigate('reviews')}
-                      className="text-sm font-bold uppercase tracking-widest text-zinc-900 hover:underline"
-                    >
-                      See More Reviews
-                    </button>
-                  </div>
-                </div>
               </div>
             </section>
 
             {/* Trust Section */}
-            <section className="py-20 bg-white">
+            <section className="py-20 md:py-32 bg-white">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-                  <div className="flex flex-col items-center text-center">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-6">
-                      <ShieldCheck size={32} className="text-zinc-900" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-20">
+                  <div className="flex flex-col items-center text-center group">
+                    <div className="w-20 h-20 bg-zinc-50 rounded-full flex items-center justify-center mb-8 group-hover:bg-zinc-900 group-hover:text-white transition-all duration-500">
+                      <ShieldCheck size={32} />
                     </div>
-                    <h3 className="text-lg font-serif font-bold mb-3">Premium Quality</h3>
-                    <p className="text-zinc-500 text-sm leading-relaxed">We use only the finest fabrics sourced for durability and comfort.</p>
+                    <h3 className="text-xl font-serif font-bold mb-4">Premium Quality</h3>
+                    <p className="text-zinc-500 text-sm leading-relaxed max-w-xs">We use only the finest fabrics sourced for durability and comfort.</p>
                   </div>
-                  <div className="flex flex-col items-center text-center">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-6">
-                      <Truck size={32} className="text-zinc-900" />
+                  <div className="flex flex-col items-center text-center group">
+                    <div className="w-20 h-20 bg-zinc-50 rounded-full flex items-center justify-center mb-8 group-hover:bg-zinc-900 group-hover:text-white transition-all duration-500">
+                      <Truck size={32} />
                     </div>
-                    <h3 className="text-lg font-serif font-bold mb-3">Fast Delivery</h3>
-                    <p className="text-zinc-500 text-sm leading-relaxed">Quick delivery across all 64 districts of Bangladesh.</p>
+                    <h3 className="text-xl font-serif font-bold mb-4">Fast Delivery</h3>
+                    <p className="text-zinc-500 text-sm leading-relaxed max-w-xs">Quick delivery across all 64 districts of Bangladesh.</p>
                   </div>
-                  <div className="flex flex-col items-center text-center">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-6">
-                      <RefreshCw size={32} className="text-zinc-900" />
+                  <div className="flex flex-col items-center text-center group">
+                    <div className="w-20 h-20 bg-zinc-50 rounded-full flex items-center justify-center mb-8 group-hover:bg-zinc-900 group-hover:text-white transition-all duration-500">
+                      <RefreshCw size={32} />
                     </div>
-                    <h3 className="text-lg font-serif font-bold mb-3">Easy Exchange</h3>
-                    <p className="text-zinc-500 text-sm leading-relaxed">Not the right fit? Exchange within 3 days with no hassle.</p>
+                    <h3 className="text-xl font-serif font-bold mb-4">Easy Exchange</h3>
+                    <p className="text-zinc-500 text-sm leading-relaxed max-w-xs">Not the right fit? Exchange within 3 days with no hassle.</p>
                   </div>
                 </div>
               </div>
@@ -2218,9 +2470,6 @@ export default function App() {
                   >
                     <option value="">All Categories</option>
                     <option value="Formal Pant">Formal Pant</option>
-                    <option value="Formal Shirt - Slim Fit">Formal Shirt - Slim Fit</option>
-                    <option value="Formal Shirt - Regular Fit">Formal Shirt - Regular Fit</option>
-                    <option value="Formal Shirt - Premium">Formal Shirt - Premium</option>
                   </select>
                 </div>
                 <div className="flex flex-col gap-2 min-w-[200px]">
@@ -2232,9 +2481,9 @@ export default function App() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-10">
+              <div className="grid grid-cols-1 gap-10 max-w-md mx-auto">
                 {products
-                  .filter(product => !selectedCategory || product.category === selectedCategory)
+                  .filter(product => (!selectedCategory || product.category === selectedCategory) && (product.category === 'Formal Pant' || !product.category))
                   .map(product => (
                     <ProductCard key={product.id} product={product} onSelect={handleProductSelect} />
                   ))
@@ -2250,6 +2499,7 @@ export default function App() {
             onAddToCart={addToCart} 
             onBack={() => handleNavigate('shop')} 
             onBuyNow={handleBuyNow}
+            user={user}
           />
         )}
 
@@ -2340,7 +2590,7 @@ export default function App() {
                 <div className="bg-zinc-50 p-8 text-center">
                   <Mail className="mx-auto mb-4 text-zinc-900" size={24} />
                   <h3 className="font-bold uppercase tracking-widest text-xs mb-2">Email</h3>
-                  <p className="text-zinc-600">eleganbd.ltd@gmail.com</p>
+                  <p className="text-zinc-600">info@eleganbd.com</p>
                 </div>
                 <div className="bg-zinc-50 p-8 text-center">
                   <MessageCircle className="mx-auto mb-4 text-zinc-900" size={24} />

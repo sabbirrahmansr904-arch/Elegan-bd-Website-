@@ -11,8 +11,12 @@ import axios from "axios";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, "uploads");
+// Ensure public/uploads directory exists
+const publicDir = path.join(__dirname, "public");
+const uploadDir = path.join(publicDir, "uploads");
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir);
+}
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
@@ -72,6 +76,8 @@ try {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       image TEXT,
       title TEXT,
+      subtitle TEXT,
+      button_text TEXT,
       link TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -91,6 +97,18 @@ try {
       key TEXT PRIMARY KEY,
       value TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS product_reviews (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER,
+      user_id INTEGER,
+      user_name TEXT,
+      rating INTEGER,
+      comment TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(product_id) REFERENCES products(id),
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    );
   `);
 
   // Ensure payment columns exist (for existing databases)
@@ -101,6 +119,14 @@ try {
     db.prepare("ALTER TABLE orders ADD COLUMN transaction_id TEXT").run();
   } catch (e) {}
   
+  // Ensure banner columns exist
+  try {
+    db.prepare("ALTER TABLE banners ADD COLUMN subtitle TEXT").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE banners ADD COLUMN button_text TEXT").run();
+  } catch (e) {}
+  
   // Update existing Formal Pant prices to 999
   try {
     db.prepare("UPDATE products SET price = 999 WHERE name LIKE '%Formal Pant%'").run();
@@ -108,11 +134,13 @@ try {
 
   // Remove specific products as requested
   try {
+    db.prepare("DELETE FROM products WHERE category LIKE 'Formal Shirt%'").run();
+    db.prepare("DELETE FROM products WHERE name LIKE '%Formal Shirt%'").run();
     db.prepare("DELETE FROM products WHERE name = 'Man''s Formal Shirt Cream/Off White'").run();
     db.prepare("DELETE FROM products WHERE name = 'Man''s Formal Pant - Maroon'").run();
     db.prepare("DELETE FROM products WHERE name = 'Man''s Formal Pant - Coffee Brown'").run();
     db.prepare("DELETE FROM products WHERE name = 'Man''s Formal Pant - Olive Green'").run();
-    db.prepare("DELETE FROM products WHERE name = 'Man''s Formal Pant - Charcoal Grey'").run();
+    db.prepare("DELETE FROM products WHERE name = 'Man''s Formal Pant - Light Navy'").run();
     db.prepare("DELETE FROM products WHERE name = 'Man''s Formal Pant - Royal Blue'").run();
     db.prepare("DELETE FROM products WHERE name = 'Man''s Formal Pant - Khaki'").run();
   } catch (e) {}
@@ -130,11 +158,11 @@ try {
         name: "Man's Formal Pant - Cream",
         price: 999,
         original_price: 1400,
-        image: "https://picsum.photos/seed/elegan1/800/1000",
-        images: JSON.stringify(["https://picsum.photos/seed/elegan1/800/1000"]),
+        image: "https://i.postimg.cc/mD364r9M/1000047673-removebg-preview.png",
+        images: JSON.stringify(["https://i.postimg.cc/mD364r9M/1000047673-removebg-preview.png"]),
         fabric: "Woven Cotton",
         fit: "Slim Fit",
-        description: "* Premium-quality Woven Cotton Blended with 2% Spandex\n\n* Tailored straight fit\n\n* Flat front with sharp creases \n\n* Comfortable, breathable, and durable\n\n* Ideal for office, business, and formal wear",
+        description: "- Premium-quality Woven Cotton Blended with 2% Spandex\n- Tailored straight fit\n- Flat front with sharp crease\n- Comfortable, breathable, and durable\n- Ideal for office, business, and formal wear\n\nA refined essential that blends comfort, versatility, and classic formal style.",
         sizes: JSON.stringify([30, 32, 34, 36, 38]),
         rating: 4.8,
         reviews: 124
@@ -147,7 +175,7 @@ try {
         images: JSON.stringify(["https://picsum.photos/seed/elegan2/800/1000"]),
         fabric: "Woven Cotton",
         fit: "Regular Fit",
-        description: "* Premium-quality Woven Cotton Blended with 2% Spandex\n\n* Tailored straight fit\n\n* Flat front with sharp creases \n\n* Comfortable, breathable, and durable\n\n* Ideal for office, business, and formal wear",
+        description: "- Premium-quality Woven Cotton Blended with 2% Spandex\n- Tailored straight fit\n- Flat front with sharp crease\n- Comfortable, breathable, and durable\n- Ideal for office, business, and formal wear\n\nA refined essential that blends comfort, versatility, and classic formal style.",
         sizes: JSON.stringify([30, 32, 34, 36, 38]),
         rating: 4.9,
         reviews: 89
@@ -160,7 +188,7 @@ try {
         images: JSON.stringify(["https://picsum.photos/seed/elegan3/800/1000"]),
         fabric: "Woven Cotton",
         fit: "Slim Fit",
-        description: "* Premium-quality Woven Cotton Blended with 2% Spandex\n\n* Tailored straight fit\n\n* Flat front with sharp creases \n\n* Comfortable, breathable, and durable\n\n* Ideal for office, business, and formal wear",
+        description: "- Premium-quality Woven Cotton Blended with 2% Spandex\n- Tailored straight fit\n- Flat front with sharp crease\n- Comfortable, breathable, and durable\n- Ideal for office, business, and formal wear\n\nA refined essential that blends comfort, versatility, and classic formal style.",
         sizes: JSON.stringify([30, 32, 34, 36, 38]),
         rating: 4.7,
         reviews: 210
@@ -173,66 +201,10 @@ try {
         images: JSON.stringify(["https://picsum.photos/seed/elegan4/800/1000"]),
         fabric: "Woven Cotton",
         fit: "Tapered Fit",
-        description: "* Premium-quality Woven Cotton Blended with 2% Spandex\n\n* Tailored straight fit\n\n* Flat front with sharp creases \n\n* Comfortable, breathable, and durable\n\n* Ideal for office, business, and formal wear",
+        description: "- Premium-quality Woven Cotton Blended with 2% Spandex\n- Tailored straight fit\n- Flat front with sharp crease\n- Comfortable, breathable, and durable\n- Ideal for office, business, and formal wear\n\nA refined essential that blends comfort, versatility, and classic formal style.",
         sizes: JSON.stringify([30, 32, 34, 36, 38]),
         rating: 4.6,
         reviews: 56
-      },
-      {
-        name: "Man's Formal Shirt Sky Blue",
-        price: 699,
-        original_price: 999,
-        image: "https://picsum.photos/seed/elegan-shirt-sky/800/1000",
-        images: JSON.stringify(["https://picsum.photos/seed/elegan-shirt-sky/800/1000"]),
-        fabric: "Premium Cotton",
-        fit: "Slim Fit",
-        description: "* High-quality Premium Cotton\n\n* Breathable and soft texture\n\n* Perfect for formal and semi-formal occasions",
-        sizes: JSON.stringify([38, 40, 42, 44]),
-        rating: 4.9,
-        reviews: 45,
-        category: "Formal Shirt - Premium"
-      },
-      {
-        name: "Man's Formal Shirt Black",
-        price: 699,
-        original_price: 999,
-        image: "https://picsum.photos/seed/elegan-shirt-black/800/1000",
-        images: JSON.stringify(["https://picsum.photos/seed/elegan-shirt-black/800/1000"]),
-        fabric: "Premium Cotton",
-        fit: "Slim Fit",
-        description: "* High-quality Premium Cotton\n\n* Breathable and soft texture\n\n* Perfect for formal and semi-formal occasions",
-        sizes: JSON.stringify([38, 40, 42, 44]),
-        rating: 4.8,
-        reviews: 32,
-        category: "Formal Shirt - Premium"
-      },
-      {
-        name: "Man's Formal Shirt White",
-        price: 699,
-        original_price: 999,
-        image: "https://picsum.photos/seed/elegan-shirt-white/800/1000",
-        images: JSON.stringify(["https://picsum.photos/seed/elegan-shirt-white/800/1000"]),
-        fabric: "Premium Cotton",
-        fit: "Slim Fit",
-        description: "* High-quality Premium Cotton\n\n* Breathable and soft texture\n\n* Perfect for formal and semi-formal occasions",
-        sizes: JSON.stringify([38, 40, 42, 44]),
-        rating: 4.9,
-        reviews: 67,
-        category: "Formal Shirt - Premium"
-      },
-      {
-        name: "Man's Formal Shirt Baby Pink",
-        price: 699,
-        original_price: 999,
-        image: "https://picsum.photos/seed/elegan-shirt-pink/800/1000",
-        images: JSON.stringify(["https://picsum.photos/seed/elegan-shirt-pink/800/1000"]),
-        fabric: "Premium Cotton",
-        fit: "Slim Fit",
-        description: "* High-quality Premium Cotton\n\n* Breathable and soft texture\n\n* Perfect for formal and semi-formal occasions",
-        sizes: JSON.stringify([38, 40, 42, 44]),
-        rating: 4.7,
-        reviews: 21,
-        category: "Formal Shirt - Premium"
       }
     ];
 
@@ -242,15 +214,36 @@ try {
     `);
 
     initialProducts.forEach(p => {
-      insertStmt.run(p.name, p.price, p.original_price, p.image, p.images, p.fabric, p.fit, p.description, p.sizes, p.rating, p.reviews, p.category || 'Formal Pant');
+      insertStmt.run(p.name, p.price, p.original_price, p.image, p.images, p.fabric, p.fit, p.description, p.sizes, p.rating, p.reviews, 'Formal Pant');
     });
 
-    // Seed initial banner
-    db.prepare("INSERT OR IGNORE INTO banners (image, title, link) VALUES (?, ?, ?)").run(
-      "https://picsum.photos/seed/elegan-banner/1536/1024",
-      "Special Offer",
-      "/shop"
-    );
+    // Seed initial banners
+    const initialBanners = [
+      {
+        image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop",
+        title: "EID SPECIAL COLLECTION",
+        subtitle: "Up to 40% Off on Premium Formal Wear",
+        button_text: "Shop Now",
+        link: "/shop"
+      },
+      {
+        image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop",
+        title: "NEW ARRIVALS",
+        subtitle: "Discover the latest trends in formal fashion",
+        button_text: "Explore More",
+        link: "/shop"
+      },
+      {
+        image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=2070&auto=format&fit=crop",
+        title: "OFFICE ESSENTIALS",
+        subtitle: "Look sharp, feel confident",
+        button_text: "View Collection",
+        link: "/shop"
+      }
+    ];
+
+    const bannerStmt = db.prepare("INSERT INTO banners (image, title, subtitle, button_text, link) VALUES (?, ?, ?, ?, ?)");
+    initialBanners.forEach(b => bannerStmt.run(b.image, b.title, b.subtitle, b.button_text, b.link));
 
     // Mark as initialized
     db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)").run('db_initialized', 'true');
@@ -309,11 +302,15 @@ try {
 
   freezeImages();
 
-  // Migration: Update formal shirt prices if they are old values
-  db.prepare("UPDATE products SET price = 699, original_price = 999 WHERE category LIKE 'Formal Shirt%' AND price > 699").run();
-
   // Migration: Update formal pant prices to 1049
   db.prepare("UPDATE products SET price = 1049 WHERE category = 'Formal Pant'").run();
+
+  // Update specific product image as requested
+  db.prepare("UPDATE products SET image = ?, images = ? WHERE name = ?").run(
+    "https://i.postimg.cc/mD364r9M/1000047673-removebg-preview.png",
+    JSON.stringify(["https://i.postimg.cc/mD364r9M/1000047673-removebg-preview.png"]),
+    "Man's Formal Pant - Cream"
+  );
 
   // Ensure promo_image_hero setting exists
   db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)").run('promo_image_hero', 'https://i.postimg.cc/s1sTDysL/banner.jpg');
@@ -323,7 +320,7 @@ try {
   if (pantCount.count < 4) {
     const pantsNeeded = 4 - pantCount.count;
     const allPants = [
-      { name: "Man's Formal Pant - Cream", image: "https://picsum.photos/seed/elegan1/800/1000" },
+      { name: "Man's Formal Pant - Cream", image: "https://i.postimg.cc/mD364r9M/1000047673-removebg-preview.png" },
       { name: "Man's Formal Pant - Black", image: "https://picsum.photos/seed/elegan2/800/1000" },
       { name: "Man's Formal Pant - Light Ash", image: "https://picsum.photos/seed/elegan3/800/1000" },
       { name: "Man's Formal Pant - Dark Navy Blue", image: "https://picsum.photos/seed/elegan4/800/1000" }
@@ -341,7 +338,7 @@ try {
         insertPant.run(
           p.name, 1049, 1400, p.image, JSON.stringify([p.image]), 
           "Woven Cotton", "Slim Fit", 
-          "* Premium-quality Woven Cotton Blended with 2% Spandex\n\n* Tailored straight fit\n\n* Flat front with sharp creases \n\n* Comfortable, breathable, and durable\n\n* Ideal for office, business, and formal wear",
+          "- Premium-quality Woven Cotton Blended with 2% Spandex\n- Tailored straight fit\n- Flat front with sharp crease\n- Comfortable, breathable, and durable\n- Ideal for office, business, and formal wear\n\nA refined essential that blends comfort, versatility, and classic formal style.",
           JSON.stringify([30, 32, 34, 36, 38]), 4.8, 50, "Formal Pant"
         );
       }
@@ -359,6 +356,38 @@ async function startServer() {
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ limit: '100mb', extended: true }));
   app.use("/uploads", express.static(uploadDir));
+
+  // Function to download image and save to public/uploads
+  const downloadAndSaveImage = async (url: string, filename: string) => {
+    try {
+      const response = await axios({
+        url,
+        method: 'GET',
+        responseType: 'arraybuffer'
+      });
+      const filePath = path.join(uploadDir, filename);
+      fs.writeFileSync(filePath, response.data);
+      return `/uploads/${filename}`;
+    } catch (err) {
+      console.error(`Failed to download image from ${url}:`, err.message);
+      return url;
+    }
+  };
+
+  // Migration: Download specific image for Cream Pant
+  const migrateCreamPantImage = async () => {
+    const creamPantUrl = "https://stylisebd.com/wp-content/uploads/2026/01/Pant-Off-White-1.webp";
+    const filename = "pant-off-white-1.webp";
+    const localPath = await downloadAndSaveImage(creamPantUrl, filename);
+    
+    db.prepare("UPDATE products SET image = ?, images = ? WHERE name = ?").run(
+      localPath,
+      JSON.stringify([localPath]),
+      "Man's Formal Pant - Cream"
+    );
+  };
+
+  migrateCreamPantImage();
 
   // Settings API
   app.get("/api/settings/:key", (req, res) => {
@@ -414,7 +443,7 @@ async function startServer() {
   // Products API
   app.get("/api/products", (req, res) => {
     try {
-      const products = db.prepare("SELECT * FROM products ORDER BY created_at DESC").all();
+      const products = db.prepare("SELECT * FROM products ORDER BY id ASC").all();
       res.json(products.map((p: any) => ({
         ...p,
         originalPrice: p.original_price,
@@ -484,6 +513,36 @@ async function startServer() {
       }
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch product" });
+    }
+  });
+
+  app.get("/api/products/:id/reviews", (req, res) => {
+    const { id } = req.params;
+    try {
+      const reviews = db.prepare("SELECT * FROM product_reviews WHERE product_id = ? ORDER BY created_at DESC").all(id);
+      res.json(reviews);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch reviews" });
+    }
+  });
+
+  app.post("/api/reviews", (req, res) => {
+    const { product_id, user_id, user_name, rating, comment } = req.body;
+    try {
+      const stmt = db.prepare(`
+        INSERT INTO product_reviews (product_id, user_id, user_name, rating, comment)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      stmt.run(product_id, user_id, user_name, rating, comment);
+      
+      // Update product average rating and review count
+      const stats = db.prepare("SELECT COUNT(*) as count, AVG(rating) as avg FROM product_reviews WHERE product_id = ?").get(product_id) as any;
+      db.prepare("UPDATE products SET rating = ?, reviews = ? WHERE id = ?").run(parseFloat(stats.avg.toFixed(1)), stats.count, product_id);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Review error:", error);
+      res.status(500).json({ error: "Failed to post review" });
     }
   });
 
@@ -575,10 +634,10 @@ async function startServer() {
   });
 
   app.post("/api/admin/banners", (req, res) => {
-    const { image, title, link } = req.body;
+    const { image, title, subtitle, button_text, link } = req.body;
     try {
-      const stmt = db.prepare("INSERT INTO banners (image, title, link) VALUES (?, ?, ?)");
-      const result = stmt.run(image, title || "", link || "");
+      const stmt = db.prepare("INSERT INTO banners (image, title, subtitle, button_text, link) VALUES (?, ?, ?, ?, ?)");
+      const result = stmt.run(image, title || "", subtitle || "", button_text || "Shop Now", link || "");
       res.json({ success: true, bannerId: result.lastInsertRowid });
     } catch (error) {
       res.status(500).json({ error: "Failed to add banner" });
@@ -601,16 +660,15 @@ async function startServer() {
     }
 
     try {
-      // Convert image to optimized base64 for permanent database storage
+      // Process and convert to Base64
       const optimizedBuffer = await sharp(req.file.buffer)
         .resize(2000, 2000, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 90 })
         .toBuffer();
 
-      const base64Image = optimizedBuffer.toString('base64');
-      const imageUrl = `data:image/jpeg;base64,${base64Image}`;
+      const base64Image = `data:image/jpeg;base64,${optimizedBuffer.toString('base64')}`;
       
-      res.json({ imageUrl });
+      res.json({ imageUrl: base64Image });
     } catch (error) {
       console.error("Upload error:", error);
       res.status(500).json({ error: "Failed to process image" });
