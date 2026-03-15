@@ -6,7 +6,7 @@ const db = new Database('elegan.db');
 db.prepare('DELETE FROM products').run();
 
 const products = [
-  { name: "Man's Formal Pant - Cream", image: "https://picsum.photos/seed/elegan_cream/800/1000" },
+  { name: "Man's Formal Pant - Cream", image: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=800&auto=format&fit=crop" },
   { name: "Man's Formal Pant - Black", image: "https://stylisebd.com/wp-content/uploads/2025/12/Formal-Pant-Black-2.webp" },
   { name: "Man's Formal Pant - Light Ash", image: "https://stylisebd.com/wp-content/uploads/2025/12/Formal-Pant-Ash-1-1.webp" },
   { name: "Man's Formal Pant - Dark Navy Blue", image: "https://stylisebd.com/wp-content/uploads/2025/12/Formal-pant-Dark-Navy-1-1.webp" },

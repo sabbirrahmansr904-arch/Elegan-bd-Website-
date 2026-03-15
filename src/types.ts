@@ -2,40 +2,44 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  phone: string;
-  address: string;
+  phone?: string;
+  address?: string;
+  role?: string;
 }
 
 export interface Product {
-  id: number;
+  id: number | string;
   name: string;
   category: string;
   price: number;
   originalPrice: number;
   image: string;
-  images: string[];
+  images?: string[] | string;
   fabric: string;
   fit: string;
   description: string;
-  sizes: number[];
+  sizes: any[];
+  colors?: string[];
+  stock?: number;
+  stockStatus?: 'In Stock' | 'Out of Stock' | 'Low Stock';
   rating: number;
   reviews: number;
 }
 
 export interface CartItem extends Product {
-  selectedSize: number;
+  selectedSize: any;
   quantity: number;
 }
 
 export interface Order {
-  id?: number;
-  user_id?: number;
+  id?: string | number;
+  user_id?: string | number;
   customer_name: string;
   phone: string;
   address: string;
   total_amount: number;
-  items: CartItem[];
-  status?: string;
+  items: CartItem[] | string;
+  status?: 'Pending' | 'Confirmed' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
   payment_method?: string;
   transaction_id?: string;
   created_at?: string;

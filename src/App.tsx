@@ -35,6 +35,9 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { Product, CartItem, User, Order, Banner, Coupon, Review } from './types';
+import { db, auth } from './firebase';
+import { collection, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, setDoc, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 // --- Components ---
 
@@ -71,7 +74,7 @@ const Navbar = ({ cartCount, onOpenCart, onOpenUser, onNavigate, user }: {
   const navLinks = [
     { name: 'Home', id: 'home' },
     { name: 'Shop', id: 'shop' },
-    { name: 'About Us', id: 'about' },
+    { name: 'About Elegan BD', id: 'about' },
     { name: 'Returns & Exchange', id: 'returns-policy' },
     { name: 'Contact', id: 'contact' },
   ];
@@ -211,24 +214,15 @@ const UserPanel = ({ isOpen, onClose, onLoginSuccess, user, onLogout }: {
     setError('');
     setLoading(true);
 
-    const endpoint = isRegister ? '/api/register' : '/api/login';
     try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-      const data = await res.json();
-      if (data.success) {
-        if (isRegister) {
-          setIsRegister(false);
-          setError('Registration successful! Please login.');
-        } else {
-          onLoginSuccess(data.user);
-          onClose();
-        }
+      if (isRegister) {
+        // Simple mock registration for now
+        setIsRegister(false);
+        setError('Registration successful! Please login.');
       } else {
-        setError(data.error || 'Something went wrong');
+        // Simple mock login for now
+        onLoginSuccess({ id: 1, name: formData.name || 'User', email: formData.email, role: 'customer' });
+        onClose();
       }
     } catch (err) {
       setError('Connection error');
@@ -556,7 +550,11 @@ const BannerCarousel = ({ banners }: { banners: Banner[] }) => {
   );
 };
 
-const ProductCard = ({ product, onSelect }: { product: Product, onSelect: (p: Product) => void, key?: React.Key }) => {
+const ProductCard = ({ product, onSelect }: { 
+  product: Product, 
+  onSelect: (p: Product) => void, 
+  key?: React.Key 
+}) => {
   return (
     <motion.div 
       whileHover={{ y: -10 }}
@@ -569,6 +567,7 @@ const ProductCard = ({ product, onSelect }: { product: Product, onSelect: (p: Pr
           alt={product.name} 
           className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-110"
           referrerPolicy="no-referrer"
+          onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=800&auto=format&fit=crop'; }}
         />
         {product.originalPrice > product.price && (
           <div className="absolute top-2 left-2 md:top-4 md:left-4 bg-zinc-900 text-white text-[8px] md:text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded-sm">
@@ -582,11 +581,11 @@ const ProductCard = ({ product, onSelect }: { product: Product, onSelect: (p: Pr
         </div>
       </div>
       <div className="px-1 text-center md:text-left">
-        <h3 className="text-sm md:text-lg font-bold text-zinc-900 mb-1 uppercase tracking-tight truncate">{product.name}</h3>
+        <h3 className="text-base md:text-xl font-bold text-zinc-900 mb-1 uppercase tracking-tight truncate">{product.name}</h3>
         <div className="flex items-center justify-center md:justify-start gap-2">
-          <span className="text-sm md:text-lg font-bold text-zinc-900">৳{product.price}</span>
+          <span className="text-base md:text-xl font-bold text-zinc-900">৳{product.price}</span>
           {product.originalPrice > product.price && (
-            <span className="text-xs md:text-sm text-zinc-400 line-through">৳{product.originalPrice}</span>
+            <span className="text-sm md:text-base text-zinc-400 line-through">৳{product.originalPrice}</span>
           )}
         </div>
       </div>
@@ -596,18 +595,32 @@ const ProductCard = ({ product, onSelect }: { product: Product, onSelect: (p: Pr
 
 const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow, user }: { 
   product: Product, 
-  onAddToCart: (p: Product, size: number) => void, 
+  onAddToCart: (p: Product, size: any) => void, 
   onBack: () => void,
-  onBuyNow: (p: Product, size: number) => void,
+  onBuyNow: (p: Product, size: any) => void,
   user: User | null
 }) => {
-  const [selectedSize, setSelectedSize] = useState<number | null>(null);
+  const [selectedSize, setSelectedSize] = useState<any>(null);
   const [activeImage, setActiveImage] = useState(product.image);
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
   const [isZoomed, setIsZoomed] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
+  const [newReview, setNewReview] = useState({ user_name: '', rating: 5, comment: '' });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  const getImages = (images: any) => {
+    if (!images) return [];
+    if (Array.isArray(images)) return images;
+    if (typeof images === 'string') {
+      try {
+        const parsed = JSON.parse(images);
+        return Array.isArray(parsed) ? parsed : [images];
+      } catch (e) {
+        return [images];
+      }
+    }
+    return [];
+  };
 
   useEffect(() => {
     fetchReviews();
@@ -615,41 +628,37 @@ const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow, user }: {
 
   const fetchReviews = async () => {
     try {
-      const res = await fetch(`/api/products/${product.id}/reviews`);
-      const data = await res.json();
-      setReviews(data);
-    } catch (error) {
-      console.error("Failed to fetch reviews:", error);
+      const q = query(collection(db, 'reviews'), where('product_id', '==', product.id.toString()));
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setReviews(data as any);
+    } catch (err) {
+      console.error('Failed to fetch reviews:', err);
     }
   };
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      alert("Please login to leave a review");
+    if (!newReview.user_name || !newReview.comment) {
+      alert('Please fill in all fields');
       return;
     }
-    if (!newReview.comment.trim()) return;
 
     setIsSubmittingReview(true);
     try {
-      const res = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          product_id: product.id,
-          user_id: user.id,
-          user_name: user.name,
-          rating: newReview.rating,
-          comment: newReview.comment
-        })
-      });
-      if (res.ok) {
-        setNewReview({ rating: 5, comment: '' });
-        fetchReviews();
-      }
+      const reviewData = {
+        product_id: product.id.toString(),
+        user_name: newReview.user_name,
+        rating: newReview.rating,
+        comment: newReview.comment,
+        date: new Date().toISOString()
+      };
+      await addDoc(collection(db, 'reviews'), reviewData);
+      setReviews([reviewData as any, ...reviews]);
+      setNewReview({ user_name: '', rating: 5, comment: '' });
     } catch (error) {
-      console.error("Failed to submit review:", error);
+      console.error('Failed to submit review:', error);
+      alert('Failed to submit review');
     } finally {
       setIsSubmittingReview(false);
     }
@@ -689,18 +698,19 @@ const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow, user }: {
                 transformOrigin: isZoomed ? `${zoomPos.x}% ${zoomPos.y}%` : 'center'
               }}
               referrerPolicy="no-referrer"
+              onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=800&auto=format&fit=crop'; }}
             />
           </div>
           
-          {product.images && product.images.length > 1 && (
+          {getImages(product.images).length > 1 && (
             <div className="grid grid-cols-4 gap-4">
-              {product.images.map((img, idx) => (
+              {getImages(product.images).map((img: string, idx: number) => (
                 <button 
                   key={idx}
                   onClick={() => setActiveImage(img)}
                   className={`aspect-square border-2 overflow-hidden transition-all ${activeImage === img ? 'border-zinc-900' : 'border-transparent hover:border-zinc-200'}`}
                 >
-                  <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=800&auto=format&fit=crop'; }} />
                 </button>
               ))}
             </div>
@@ -728,7 +738,7 @@ const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow, user }: {
           <div className="mb-8">
             <h4 className="text-sm font-bold uppercase tracking-widest mb-4">Select Size</h4>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-              {product.sizes.map(size => (
+              {(Array.isArray(product.sizes) ? product.sizes : (typeof product.sizes === 'string' ? (product.sizes as string).split(',').map(s => s.trim()).filter(Boolean) : [])).map(size => (
                 <button
                   key={size}
                   onClick={() => setSelectedSize(size)}
@@ -893,8 +903,8 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQty, onRemove, onCheckout 
   isOpen: boolean, 
   onClose: () => void, 
   items: CartItem[], 
-  onUpdateQty: (id: number, size: number, delta: number) => void,
-  onRemove: (id: number, size: number) => void,
+  onUpdateQty: (id: number | string, size: any, delta: number) => void,
+  onRemove: (id: number | string, size: any) => void,
   onCheckout: () => void
 }) => {
   const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -935,7 +945,7 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQty, onRemove, onCheckout 
                 items.map((item, idx) => (
                   <div key={`${item.id}-${item.selectedSize}`} className="flex gap-4">
                     <div className="w-24 h-32 bg-zinc-100 flex-shrink-0">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=800&auto=format&fit=crop'; }} />
                     </div>
                     <div className="flex-1 flex flex-col">
                       <div className="flex justify-between">
@@ -1019,25 +1029,22 @@ const CheckoutPage = ({ items, onBack, onComplete }: { items: CartItem[], onBack
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerName: formData.name,
-          phone: formData.phone,
-          address: formData.address,
-          totalAmount: total + shipping,
-          items: items,
-          paymentMethod: formData.paymentMethod,
-          transactionId: formData.transactionId
-        })
-      });
-      
-      if (response.ok) {
-        onComplete();
-      }
+      const orderData = {
+        customerName: formData.name,
+        phone: formData.phone,
+        address: formData.address,
+        totalAmount: total + shipping,
+        items: JSON.stringify(items),
+        paymentMethod: formData.paymentMethod,
+        transactionId: formData.transactionId,
+        status: 'Pending',
+        createdAt: new Date().toISOString()
+      };
+      await addDoc(collection(db, 'orders'), orderData);
+      onComplete();
     } catch (error) {
       console.error("Checkout error:", error);
+      alert('Failed to place order. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -1229,13 +1236,23 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
   const [customers, setCustomers] = useState<User[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [promoImage, setPromoImage] = useState('');
+  const [categories, setCategories] = useState<string[]>(['Formal Pant', 'Office Wear', 'Premium Collection', 'Best Seller']);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
   const [email, setEmail] = useState('info@eleganbd.com');
   const [password, setPassword] = useState('eleganbd2026@#@#ssn');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user && user.email === 'info@eleganbd.com') {
+        setIsAuthenticated(true);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
   
   // Product Form State
   const [showProductForm, setShowProductForm] = useState(false);
@@ -1249,7 +1266,10 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
     fabric: 'Woven Cotton',
     fit: 'Slim Fit',
     description: '',
-    sizes: [30, 32, 34, 36, 38]
+    sizes: '30, 32, 34, 36, 38',
+    colors: 'Black, Navy, Grey',
+    stock: 100,
+    stockStatus: 'In Stock' as 'In Stock' | 'Out of Stock' | 'Low Stock'
   });
 
   // Banner Form State
@@ -1271,128 +1291,126 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
     expiry_date: ''
   });
 
-  useEffect(() => {
+    useEffect(() => {
     if (isAuthenticated) {
       setLoading(true);
       if (activeTab === 'orders') {
-        fetch('/api/admin/orders')
-          .then(res => res.json())
-          .then(data => {
-            setOrders(data);
-            setLoading(false);
-          });
+        getDocs(collection(db, 'orders')).then(snapshot => {
+          setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          setLoading(false);
+        });
       } else if (activeTab === 'products') {
-        fetch('/api/products')
-          .then(res => res.json())
-          .then(data => {
-            setProducts(data);
-            setLoading(false);
-          });
+        getDocs(collection(db, 'products')).then(snapshot => {
+          setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          setLoading(false);
+        });
       } else if (activeTab === 'banners') {
-        fetch('/api/banners')
-          .then(res => res.json())
-          .then(data => {
-            setBanners(data);
-            setLoading(false);
-          });
+        getDocs(collection(db, 'banners')).then(snapshot => {
+          setBanners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          setLoading(false);
+        });
       } else if (activeTab === 'customers') {
-        fetch('/api/customers')
-          .then(res => res.json())
-          .then(data => {
-            setCustomers(data);
-            setLoading(false);
-          });
+        getDocs(collection(db, 'customers')).then(snapshot => {
+          setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          setLoading(false);
+        });
       } else if (activeTab === 'coupons') {
-        fetch('/api/coupons')
-          .then(res => res.json())
-          .then(data => {
-            setCoupons(data);
-            setLoading(false);
-          });
+        getDocs(collection(db, 'coupons')).then(snapshot => {
+          setCoupons(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          setLoading(false);
+        });
       } else if (activeTab === 'customization') {
-        fetch('/api/settings/promo_image_hero')
-          .then(res => res.json())
-          .then(data => {
-            setPromoImage(data.value);
-            setLoading(false);
-          });
-      } else {
-        setLoading(false);
+        getDoc(doc(db, 'settings', 'promo_image_hero')).then(docSnap => {
+          if (docSnap.exists()) {
+            setPromoImage(docSnap.data().value);
+          }
+          setLoading(false);
+        });
       }
+    } else {
+      setLoading(false);
     }
   }, [isAuthenticated, activeTab]);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email === 'info@eleganbd.com' && password === 'eleganbd2026@#@#ssn') {
-      setIsAuthenticated(true);
-    } else {
-      alert('Incorrect email or password');
+  const handleLogin = async () => {
+    setLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      if (result.user.email === 'info@eleganbd.com' || result.user.email === 'sabbirrahmansr904@gmail.com') {
+        setIsAuthenticated(true);
+      } else {
+        alert('Unauthorized access. Only admins can log in.');
+        await signOut(auth);
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      alert('Login error: ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const updateStatus = async (orderId: number, status: string) => {
+  const updateStatus = async (orderId: number | string, status: string) => {
     try {
-      const res = await fetch(`/api/admin/orders/${orderId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      if (res.ok) {
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
-      }
-    } catch (err) {
-      console.error(err);
+      await updateDoc(doc(db, 'orders', orderId.toString()), { status });
+      setOrders(orders.map(o => o.id === orderId ? { ...o, status } : o));
+    } catch (error) {
+      console.error('Error updating status:', error);
     }
   };
 
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const url = editingProduct ? `/api/admin/products/${editingProduct.id}` : '/api/admin/products';
-    const method = editingProduct ? 'PUT' : 'POST';
-
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...productFormData,
-          images: [productFormData.image]
-        })
-      });
+      const dataToSave = {
+        ...productFormData,
+        sizes: typeof productFormData.sizes === 'string' 
+          ? productFormData.sizes.split(',').map(s => s.trim()).filter(Boolean) 
+          : productFormData.sizes,
+        colors: typeof productFormData.colors === 'string'
+          ? productFormData.colors.split(',').map(c => c.trim()).filter(Boolean)
+          : productFormData.colors
+      };
 
-      if (res.ok) {
-        setShowProductForm(false);
-        setEditingProduct(null);
-        setProductFormData({
-          name: '',
-          price: 0,
-          originalPrice: 0,
-          image: '',
-          fabric: 'Woven Cotton',
-          fit: 'Slim Fit',
-          description: '',
-          sizes: [30, 32, 34, 36, 38]
+      if (editingProduct) {
+        await updateDoc(doc(db, 'products', editingProduct.id.toString()), dataToSave);
+      } else {
+        await addDoc(collection(db, 'products'), {
+          ...dataToSave,
+          rating: 5.0,
+          reviews: 0
         });
-        // Refresh local list
-        fetch('/api/products')
-          .then(res => res.json())
-          .then(data => setProducts(data));
-        onRefreshProducts();
       }
-    } catch (err) {
-      console.error(err);
+      setShowProductForm(false);
+      setEditingProduct(null);
+      setProductFormData({ 
+        name: '', 
+        price: 0, 
+        originalPrice: 0, 
+        image: '', 
+        fabric: '', 
+        fit: '', 
+        description: '', 
+        sizes: '30, 32, 34, 36, 38',
+        colors: 'Black, Navy, Grey',
+        stock: 100,
+        stockStatus: 'In Stock',
+        category: 'Formal Pant' 
+      } as any);
+      getDocs(collection(db, 'products')).then(snapshot => setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any));
+      onRefreshProducts();
+    } catch (error) {
+      console.error('Error saving product:', error);
     }
   };
 
-  const deleteProduct = async (id: number) => {
+  const deleteProduct = async (id: number | string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
     try {
-      const res = await fetch(`/api/admin/products/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setProducts(prev => prev.filter(p => p.id !== id));
-        onRefreshProducts();
-      }
+      await deleteDoc(doc(db, 'products', id.toString()));
+      setProducts(prev => prev.filter(p => p.id !== id));
+      onRefreshProducts();
     } catch (err) {
       console.error(err);
     }
@@ -1409,7 +1427,10 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
       fabric: product.fabric,
       fit: product.fit,
       description: product.description,
-      sizes: product.sizes
+      sizes: Array.isArray(product.sizes) ? product.sizes.join(', ') : product.sizes,
+      colors: Array.isArray(product.colors) ? product.colors.join(', ') : (product.colors || ''),
+      stock: product.stock || 0,
+      stockStatus: product.stockStatus || 'In Stock'
     });
     setShowProductForm(true);
   };
@@ -1419,23 +1440,19 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
     if (!file) return;
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('image', file);
-
     try {
-      const res = await fetch('/api/admin/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.imageUrl) {
-        if (type === 'product') {
-          setProductFormData({ ...productFormData, image: data.imageUrl });
-        } else if (type === 'banner') {
-          setBannerFormData({ ...bannerFormData, image: data.imageUrl });
-        } else if (type === 'promo') {
-          setPromoImage(data.imageUrl);
-        }
+      const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
+      const { storage } = await import('./firebase');
+      const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      
+      if (type === 'product') {
+        setProductFormData({ ...productFormData, image: url });
+      } else if (type === 'banner') {
+        setBannerFormData({ ...bannerFormData, image: url });
+      } else if (type === 'promo') {
+        setPromoImage(url);
       }
     } catch (err) {
       console.error('Upload failed:', err);
@@ -1448,32 +1465,22 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
   const handleBannerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/admin/banners', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bannerFormData)
-      });
-      if (res.ok) {
-        setShowBannerForm(false);
-        setBannerFormData({ image: '', title: '', subtitle: '', button_text: 'Shop Now', link: '' });
-        fetch('/api/banners')
-          .then(res => res.json())
-          .then(data => setBanners(data));
-        onRefreshBanners();
-      }
-    } catch (err) {
-      console.error(err);
+      await addDoc(collection(db, 'banners'), bannerFormData);
+      setShowBannerForm(false);
+      setBannerFormData({ image: '', title: '', subtitle: '', button_text: 'Shop Now', link: '' });
+      getDocs(collection(db, 'banners')).then(snapshot => setBanners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+      onRefreshBanners();
+    } catch (error) {
+      console.error('Error saving banner:', error);
     }
   };
 
-  const deleteBanner = async (id: number) => {
+  const deleteBanner = async (id: number | string) => {
     if (!confirm('Are you sure you want to delete this banner?')) return;
     try {
-      const res = await fetch(`/api/admin/banners/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setBanners(prev => prev.filter(b => b.id !== id));
-        onRefreshBanners();
-      }
+      await deleteDoc(doc(db, 'banners', id.toString()));
+      setBanners(prev => prev.filter(b => b.id !== id));
+      onRefreshBanners();
     } catch (err) {
       console.error(err);
     }
@@ -1482,36 +1489,20 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
   const handleCouponSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/coupons', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(couponFormData)
-      });
-      if (res.ok) {
-        setShowCouponForm(false);
-        setCouponFormData({
-          code: '',
-          discount_type: 'percentage',
-          discount_value: 0,
-          min_purchase: 0,
-          expiry_date: ''
-        });
-        fetch('/api/coupons')
-          .then(res => res.json())
-          .then(data => setCoupons(data));
-      }
-    } catch (err) {
-      console.error(err);
+      await addDoc(collection(db, 'coupons'), couponFormData);
+      setShowCouponForm(false);
+      setCouponFormData({ code: '', discount_percentage: 0, is_active: 1, expiry_date: '' });
+      getDocs(collection(db, 'coupons')).then(snapshot => setCoupons(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+    } catch (error) {
+      console.error('Error saving coupon:', error);
     }
   };
 
-  const deleteCoupon = async (id: number) => {
+  const deleteCoupon = async (id: number | string) => {
     if (!confirm('Are you sure you want to delete this coupon?')) return;
     try {
-      const res = await fetch(`/api/coupons/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setCoupons(prev => prev.filter(c => c.id !== id));
-      }
+      await deleteDoc(doc(db, 'coupons', id.toString()));
+      setCoupons(prev => prev.filter(c => c.id !== id));
     } catch (err) {
       console.error(err);
     }
@@ -1520,70 +1511,62 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
   const handlePromoImageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'promo_image_hero', value: promoImage })
-      });
-      if (res.ok) {
-        alert('Promo image updated successfully!');
-        onRefreshPromoImage();
-      }
-    } catch (err) {
-      console.error(err);
+      await setDoc(doc(db, 'settings', 'promo_image_hero'), { value: promoImage });
+      alert('Promo image updated successfully');
+      onRefreshPromoImage();
+    } catch (error) {
+      console.error('Error saving promo image:', error);
     }
   };
 
   const handleDeletePromoImage = async () => {
     if (confirm('Are you sure you want to delete the promo image?')) {
       try {
-        const res = await fetch('/api/admin/settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: 'promo_image_hero', value: '' })
-        });
-        if (res.ok) {
-          setPromoImage('');
-          alert('Promo image deleted successfully!');
-          onRefreshPromoImage();
-        }
-      } catch (err) {
-        console.error(err);
+        await setDoc(doc(db, 'settings', 'promo_image_hero'), { value: '' });
+        setPromoImage('');
+        onRefreshPromoImage();
+      } catch (error) {
+        console.error('Error deleting promo image:', error);
       }
     }
   };
 
   if (!isAuthenticated) {
     return (
-      <div className="pt-32 pb-20 max-w-md mx-auto px-4">
-        <h2 className="text-2xl font-serif font-bold mb-6">Admin Login</h2>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input 
-            type="email" 
-            placeholder="Admin Email" 
-            className="w-full border-b border-zinc-200 py-3 outline-none focus:border-zinc-900"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
-          <input 
-            type="password" 
-            placeholder="Admin Password" 
-            className="w-full border-b border-zinc-200 py-3 outline-none focus:border-zinc-900"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
-          <button type="submit" className="w-full btn-primary py-3">Login</button>
-          <button type="button" onClick={onBack} className="w-full text-zinc-500 text-sm">Back to Home</button>
-        </form>
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
+        <div className="bg-white p-10 rounded-2xl shadow-xl border border-zinc-100 w-full max-w-md">
+          <div className="text-center mb-10">
+            <Logo light={false} className="mx-auto mb-6" />
+            <h2 className="text-2xl font-serif font-bold">Admin Login</h2>
+            <p className="text-zinc-500 text-sm mt-2">Access the Elegan BD management center</p>
+          </div>
+          <div className="space-y-6">
+            <button 
+              onClick={handleLogin} 
+              disabled={loading} 
+              className="w-full bg-white border border-zinc-200 text-zinc-900 py-4 flex items-center justify-center gap-3 rounded-xl shadow-sm hover:bg-zinc-50 transition-all font-bold uppercase tracking-widest text-xs"
+            >
+              {loading ? (
+                <RefreshCw size={18} className="animate-spin" />
+              ) : (
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+              )}
+              {loading ? 'Authenticating...' : 'Sign in with Google'}
+            </button>
+            <button type="button" onClick={onBack} className="w-full text-zinc-400 text-xs font-bold uppercase tracking-widest hover:text-zinc-900 transition-colors">
+              Return to Storefront
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
   const menuItems = [
+    { id: 'overview', name: 'Overview', icon: <LayoutDashboard size={20} /> },
     { id: 'dashboard', name: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { id: 'products', name: 'Product', icon: <Package size={20} /> },
+    { id: 'categories', name: 'Categories', icon: <Ticket size={20} /> },
     { id: 'orders', name: 'Order', icon: <ShoppingBag size={20} /> },
     { id: 'payments', name: 'Payment', icon: <CreditCard size={20} /> },
     { id: 'customers', name: 'Customer', icon: <Users size={20} /> },
@@ -1594,7 +1577,7 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
   ];
 
   return (
-    <div className="flex min-h-screen bg-zinc-50 pt-20">
+    <div className="flex min-h-screen bg-zinc-50">
       {/* Sidebar Toggle (Mobile) */}
       <button 
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -1653,7 +1636,7 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
 
       {/* Main Content */}
       <main className={`flex-grow transition-all duration-300 ${isSidebarOpen ? 'lg:ml-[280px]' : 'ml-0'}`}>
-        <header className="bg-white border-b border-zinc-200 h-20 flex items-center justify-between px-8 sticky top-20 z-30">
+        <header className="bg-white border-b border-zinc-200 h-20 flex items-center justify-between px-8 sticky top-0 z-30">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -1672,27 +1655,112 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
 
         <div className="p-8">
 
+          {activeTab === 'overview' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {menuItems.filter(i => i.id !== 'overview').map(item => (
+                <button 
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-sm hover:shadow-md transition-all text-left group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-900 mb-6 group-hover:bg-zinc-900 group-hover:text-white transition-colors">
+                    {item.icon}
+                  </div>
+                  <h3 className="text-lg font-serif font-bold mb-2">{item.name}</h3>
+                  <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold">Manage {item.name.toLowerCase()}</p>
+                </button>
+              ))}
+            </div>
+          )}
+
           {activeTab === 'dashboard' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-100">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Total Revenue</p>
-                <h3 className="text-2xl font-bold">৳{orders.reduce((acc, o) => acc + o.total_amount, 0).toLocaleString()}</h3>
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-100">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Total Revenue</p>
+                    <CreditCard size={16} className="text-zinc-300" />
+                  </div>
+                  <h3 className="text-3xl font-bold">৳{orders.reduce((acc, o) => acc + o.total_amount, 0).toLocaleString()}</h3>
+                  <p className="text-xs text-green-600 mt-2 font-medium">Lifetime earnings</p>
+                </div>
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-100">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Today Sales</p>
+                    <ShoppingBag size={16} className="text-zinc-300" />
+                  </div>
+                  <h3 className="text-3xl font-bold">
+                    ৳{orders
+                      .filter(o => new Date(o.created_at || '').toDateString() === new Date().toDateString())
+                      .reduce((acc, o) => acc + o.total_amount, 0)
+                      .toLocaleString()}
+                  </h3>
+                  <p className="text-xs text-zinc-500 mt-2 font-medium">Sales from today</p>
+                </div>
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-100">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Pending Orders</p>
+                    <RefreshCw size={16} className="text-amber-400" />
+                  </div>
+                  <h3 className="text-3xl font-bold">{orders.filter(o => o.status?.toLowerCase() === 'pending').length}</h3>
+                  <p className="text-xs text-amber-600 mt-2 font-medium">Awaiting confirmation</p>
+                </div>
               </div>
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-100">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Total Orders</p>
-                <h3 className="text-2xl font-bold">{orders.length}</h3>
-              </div>
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-100">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Total Customers</p>
-                <h3 className="text-2xl font-bold">{customers.length}</h3>
-              </div>
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-100">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Total Products</p>
-                <h3 className="text-2xl font-bold">{products.length}</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-100">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Total Orders</p>
+                    <Package size={16} className="text-zinc-300" />
+                  </div>
+                  <h3 className="text-3xl font-bold">{orders.length}</h3>
+                </div>
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-100">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Total Customers</p>
+                    <Users size={16} className="text-zinc-300" />
+                  </div>
+                  <h3 className="text-3xl font-bold">{customers.length}</h3>
+                </div>
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-100">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Total Products</p>
+                    <Package size={16} className="text-zinc-300" />
+                  </div>
+                  <h3 className="text-3xl font-bold">{products.length}</h3>
+                </div>
               </div>
             </div>
           )}
 
+          {activeTab === 'categories' && (
+            <div className="max-w-md">
+              <h3 className="text-xl font-serif font-bold mb-6">Product Categories</h3>
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-100">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const newCat = (e.target as any).category.value;
+                  if (newCat && !categories.includes(newCat)) {
+                    setCategories([...categories, newCat]);
+                    (e.target as any).category.value = '';
+                  }
+                }} className="flex gap-4 mb-8">
+                  <input name="category" placeholder="New Category Name" className="flex-grow border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" />
+                  <button type="submit" className="btn-primary px-6 py-2 text-xs">Add</button>
+                </form>
+                <div className="space-y-2">
+                  {categories.map(cat => (
+                    <div key={cat} className="flex justify-between items-center p-3 bg-zinc-50 rounded-lg">
+                      <span className="text-sm font-medium">{cat}</span>
+                      <button onClick={() => setCategories(categories.filter(c => c !== cat))} className="text-red-500 hover:text-red-700">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           {activeTab === 'orders' && (
             loading ? <p>Loading orders...</p> : (
               <div className="bg-white rounded-xl shadow-sm border border-zinc-100 overflow-hidden">
@@ -1731,22 +1799,30 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
                           <td className="py-4 px-6 font-bold">৳{order.total_amount}</td>
                           <td className="py-4 px-6">
                             <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded ${
-                              order.status === 'pending' ? 'bg-amber-100 text-amber-700' : 
-                              order.status === 'shipped' ? 'bg-blue-100 text-blue-700' : 
-                              order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                              order.status === 'Pending' ? 'bg-amber-100 text-amber-700' : 
+                              order.status === 'Confirmed' ? 'bg-blue-100 text-blue-700' : 
+                              order.status === 'Processing' ? 'bg-purple-100 text-purple-700' : 
+                              order.status === 'Shipped' ? 'bg-indigo-100 text-indigo-700' : 
+                              order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
                               'bg-red-100 text-red-700'
                             }`}>
-                              {order.status}
+                              {order.status || 'Pending'}
                             </span>
                           </td>
                           <td className="py-4 px-6 text-right">
                             <div className="flex justify-end gap-2">
-                              {order.status !== 'delivered' && order.status !== 'cancelled' && (
-                                <>
-                                  <button onClick={() => updateStatus(order.id!, 'shipped')} className="text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:underline">Ship</button>
-                                  <button onClick={() => updateStatus(order.id!, 'delivered')} className="text-[10px] font-bold uppercase tracking-widest text-green-600 hover:underline">Deliver</button>
-                                </>
-                              )}
+                              <select 
+                                className="text-[10px] font-bold uppercase tracking-widest bg-zinc-100 border-none outline-none py-1 px-2 rounded cursor-pointer"
+                                value={order.status || 'Pending'}
+                                onChange={(e) => updateStatus(order.id!, e.target.value)}
+                              >
+                                <option value="Pending">Pending</option>
+                                <option value="Confirmed">Confirmed</option>
+                                <option value="Processing">Processing</option>
+                                <option value="Shipped">Shipped</option>
+                                <option value="Delivered">Delivered</option>
+                                <option value="Cancelled">Cancelled</option>
+                              </select>
                             </div>
                           </td>
                         </tr>
@@ -1773,7 +1849,7 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
                       fabric: 'Woven Cotton',
                       fit: 'Slim Fit',
                       description: '',
-                      sizes: [30, 32, 34, 36, 38]
+                      sizes: '30, 32, 34, 36, 38'
                     });
                     setShowProductForm(true);
                   }}
@@ -1798,10 +1874,9 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
                       <div className="md:col-span-2">
                         <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Category</label>
                         <select className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900 bg-transparent" value={productFormData.category} onChange={e => setProductFormData({...productFormData, category: e.target.value})}>
-                          <option value="Formal Pant">Formal Pant</option>
-                          <option value="Formal Shirt - Slim Fit">Formal Shirt - Slim Fit</option>
-                          <option value="Formal Shirt - Regular Fit">Formal Shirt - Regular Fit</option>
-                          <option value="Formal Shirt - Premium">Formal Shirt - Premium</option>
+                          {categories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
                         </select>
                       </div>
                       <div>
@@ -1809,8 +1884,24 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
                         <input required type="number" className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.price} onChange={e => setProductFormData({...productFormData, price: parseInt(e.target.value)})} />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Original Price (৳)</label>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Discount Price (৳)</label>
                         <input required type="number" className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.originalPrice} onChange={e => setProductFormData({...productFormData, originalPrice: parseInt(e.target.value)})} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Stock Quantity</label>
+                        <input required type="number" className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.stock} onChange={e => setProductFormData({...productFormData, stock: parseInt(e.target.value)})} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Stock Status</label>
+                        <select className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900 bg-transparent" value={productFormData.stockStatus} onChange={e => setProductFormData({...productFormData, stockStatus: e.target.value as any})}>
+                          <option value="In Stock">In Stock</option>
+                          <option value="Out of Stock">Out of Stock</option>
+                          <option value="Low Stock">Low Stock</option>
+                        </select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Colors (comma separated)</label>
+                        <input className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.colors} onChange={e => setProductFormData({...productFormData, colors: e.target.value})} placeholder="Black, Navy, Grey" />
                       </div>
                       <div className="md:col-span-2">
                         <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Product Image</label>
@@ -1824,6 +1915,22 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
                             <input className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900 text-sm mt-2" value={productFormData.image} onChange={e => setProductFormData({...productFormData, image: e.target.value})} placeholder="https://..." />
                           </div>
                         </div>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Description</label>
+                        <textarea className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.description} onChange={e => setProductFormData({...productFormData, description: e.target.value})} rows={3} placeholder="Product description..." />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Fabric</label>
+                        <input className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.fabric} onChange={e => setProductFormData({...productFormData, fabric: e.target.value})} placeholder="Woven Cotton" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Fit</label>
+                        <input className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.fit} onChange={e => setProductFormData({...productFormData, fit: e.target.value})} placeholder="Slim Fit" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Sizes (comma separated)</label>
+                        <input className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.sizes} onChange={e => setProductFormData({...productFormData, sizes: e.target.value})} placeholder="30, 32, 34, 36, 38" />
                       </div>
                       <div className="md:col-span-2 pt-4 flex gap-4">
                         <button type="submit" className="flex-grow btn-primary py-3">{editingProduct ? 'Update Product' : 'Add Product'}</button>
@@ -1852,6 +1959,15 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
                     <div className="flex-grow">
                       <h4 className="font-bold text-sm truncate max-w-[150px]">{product.name}</h4>
                       <p className="text-xs text-zinc-500">৳{product.price}</p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${
+                          product.stockStatus === 'In Stock' ? 'bg-green-500' :
+                          product.stockStatus === 'Low Stock' ? 'bg-amber-500' : 'bg-red-500'
+                        }`} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                          {product.stockStatus || 'In Stock'} ({product.stock || 0})
+                        </span>
+                      </div>
                     </div>
                     <div className="flex flex-col gap-1">
                       <button onClick={() => startEdit(product)} className="px-3 py-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
@@ -1945,20 +2061,30 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
                   <thead>
                     <tr className="border-b border-zinc-100 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                       <th className="py-4 px-6">Name</th>
-                      <th className="py-4 px-6">Email</th>
-                      <th className="py-4 px-6">Phone</th>
+                      <th className="py-4 px-6">Contact</th>
+                      <th className="py-4 px-6">Address</th>
+                      <th className="py-4 px-6">Total Orders</th>
                       <th className="py-4 px-6">Join Date</th>
                     </tr>
                   </thead>
                   <tbody className="text-sm">
-                    {customers.map(customer => (
-                      <tr key={customer.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                        <td className="py-4 px-6 font-bold">{customer.name}</td>
-                        <td className="py-4 px-6">{customer.email}</td>
-                        <td className="py-4 px-6">{customer.phone || 'N/A'}</td>
-                        <td className="py-4 px-6 text-zinc-500">{new Date(customer.created_at || '').toLocaleDateString()}</td>
-                      </tr>
-                    ))}
+                    {customers.map(customer => {
+                      const customerOrders = orders.filter(o => o.phone === customer.phone || o.customer_name === customer.name);
+                      return (
+                        <tr key={customer.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                          <td className="py-4 px-6">
+                            <p className="font-bold">{customer.name}</p>
+                            <p className="text-xs text-zinc-400">{customer.email}</p>
+                          </td>
+                          <td className="py-4 px-6">{customer.phone || 'N/A'}</td>
+                          <td className="py-4 px-6 text-xs max-w-xs truncate">{customer.address || 'N/A'}</td>
+                          <td className="py-4 px-6">
+                            <span className="px-2 py-1 bg-zinc-100 rounded-full text-xs font-bold">{customerOrders.length}</span>
+                          </td>
+                          <td className="py-4 px-6 text-zinc-500">{new Date(customer.created_at || '').toLocaleDateString()}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -2145,7 +2271,7 @@ const Footer = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
           <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
             <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-8 text-white/50">Customer Care</h4>
             <ul className="space-y-4 text-sm text-zinc-400">
-              <li><button onClick={() => onNavigate('about')} className="hover:text-white transition-colors">About Us</button></li>
+              <li><button onClick={() => onNavigate('about')} className="hover:text-white transition-colors">About Elegan BD</button></li>
               <li><button onClick={() => onNavigate('contact')} className="hover:text-white transition-colors">Contact Us</button></li>
               <li><button className="hover:text-white transition-colors">Privacy Policy</button></li>
               <li><button className="hover:text-white transition-colors">Terms & Conditions</button></li>
@@ -2186,6 +2312,12 @@ const Footer = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
               Developed by Sabbir Rahman
             </p>
           </div>
+          <button 
+            onClick={() => onNavigate('admin')} 
+            className="text-[10px] font-bold uppercase tracking-widest text-zinc-700 hover:text-zinc-400 transition-colors"
+          >
+            Admin
+          </button>
         </div>
       </div>
     </footer>
@@ -2215,38 +2347,42 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [orderSuccess, setOrderSuccess] = useState(false);
 
-  const fetchProducts = () => {
-    fetch('/api/products')
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch products');
-        return res.json();
-      })
-      .then(data => setProducts(data))
-      .catch(err => console.error('Product fetch error:', err));
+  const fetchProducts = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, 'products'));
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setProducts(data);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const fetchBanners = () => {
-    fetch('/api/banners')
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch banners');
-        return res.json();
-      })
-      .then(data => setBanners(data))
-      .catch(err => console.error('Banner fetch error:', err));
+  const fetchBanners = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, 'banners'));
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setBanners(data);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const fetchPromoImage = () => {
-    fetch('/api/settings/promo_image_hero')
-      .then(res => res.json())
-      .then(data => setPromoImageHero(data.value))
-      .catch(err => console.error('Promo image fetch error:', err));
+  const fetchPromoImage = async () => {
+    try {
+      const docSnap = await getDoc(doc(db, 'settings', 'promo_image_hero'));
+      if (docSnap.exists()) {
+        setPromoImageHero(docSnap.data().value);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
     fetchProducts();
     fetchBanners();
     fetchPromoImage();
-    
+
     const splashTimer = setTimeout(() => {
       setShowSplash(false);
     }, 2500);
@@ -2294,13 +2430,13 @@ export default function App() {
     window.scrollTo(0, 0);
   };
 
-  const handleBuyNow = (product: Product, size: number) => {
+  const handleBuyNow = (product: Product, size: any) => {
     addToCart(product, size);
     setCurrentPage('checkout');
     window.scrollTo(0, 0);
   };
 
-  const addToCart = (product: Product, size: number) => {
+  const addToCart = (product: Product, size: any) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id && item.selectedSize === size);
       if (existing) {
@@ -2315,7 +2451,7 @@ export default function App() {
     setIsCartOpen(true);
   };
 
-  const updateCartQty = (id: number, size: number, delta: number) => {
+  const updateCartQty = (id: number, size: any, delta: number) => {
     setCart(prev => prev.map(item => {
       if (item.id === id && item.selectedSize === size) {
         const newQty = Math.max(1, item.quantity + delta);
@@ -2325,7 +2461,7 @@ export default function App() {
     }));
   };
 
-  const removeFromCart = (id: number, size: number) => {
+  const removeFromCart = (id: number, size: any) => {
     setCart(prev => prev.filter(item => !(item.id === id && item.selectedSize === size)));
   };
 
@@ -2334,6 +2470,17 @@ export default function App() {
     setOrderSuccess(true);
     setCurrentPage('success');
   };
+
+  if (currentPage === 'admin') {
+    return (
+      <AdminPanel 
+        onBack={() => handleNavigate('home')} 
+        onRefreshProducts={fetchProducts}
+        onRefreshBanners={fetchBanners}
+        onRefreshPromoImage={fetchPromoImage}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col font-sans selection:bg-zinc-900 selection:text-white">
@@ -2414,7 +2561,11 @@ export default function App() {
                   {products
                     .filter(p => !p.category || p.category === 'Formal Pant')
                     .map(product => (
-                      <ProductCard key={product.id} product={product} onSelect={handleProductSelect} />
+                      <ProductCard 
+                        key={product.id} 
+                        product={product} 
+                        onSelect={handleProductSelect} 
+                      />
                     ))
                   }
                 </div>
@@ -2485,7 +2636,11 @@ export default function App() {
                 {products
                   .filter(product => (!selectedCategory || product.category === selectedCategory) && (product.category === 'Formal Pant' || !product.category))
                   .map(product => (
-                    <ProductCard key={product.id} product={product} onSelect={handleProductSelect} />
+                    <ProductCard 
+                      key={product.id} 
+                      product={product} 
+                      onSelect={handleProductSelect} 
+                    />
                   ))
                 }
               </div>
@@ -2542,11 +2697,14 @@ export default function App() {
         {currentPage === 'about' && (
           <section className="pt-32 pb-24">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-              <h1 className="text-4xl font-serif font-bold text-zinc-900 mb-8 text-center">Our Story</h1>
+              <h1 className="text-4xl font-serif font-bold text-zinc-900 mb-8 text-center">About Elegan BD</h1>
               <div className="aspect-video bg-zinc-100 mb-12 overflow-hidden">
-                <img src="https://picsum.photos/seed/elegan-about/1200/800?grayscale" alt="Workshop" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <img src="https://images.unsplash.com/photo-1594932224456-75a779401e28?q=80&w=2000&auto=format&fit=crop" alt="Formal Trousers Banner" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </div>
-              <div className="prose prose-zinc max-w-none">
+              <div className="prose prose-zinc max-w-none text-center">
+                <p className="text-xl text-zinc-800 leading-relaxed mb-6 font-medium">
+                  “Elegan BD brings premium men's formal wear designed for comfort, durability, and timeless style.”
+                </p>
                 <p className="text-lg text-zinc-600 leading-relaxed mb-6">
                   Founded in 2024, <strong>ELEGAN BD</strong> was born out of a simple necessity: the need for high-quality, perfectly fitted formal wear that doesn't break the bank. We noticed that the modern Bangladeshi professional often had to choose between overpriced international brands or low-quality local alternatives.
                 </p>
