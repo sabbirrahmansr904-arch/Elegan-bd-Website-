@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShoppingBag, 
@@ -23,6 +23,7 @@ import {
   Plus,
   Minus,
   Edit,
+  Eye,
   User as UserIcon,
   LayoutDashboard,
   CreditCard,
@@ -32,12 +33,19 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Video,
+  Wand2,
+  Loader2,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
 import { Product, CartItem, User, Order, Banner, Coupon, Review } from './types';
-import { db, auth } from './firebase';
+import { db, auth, storage } from './firebase';
 import { collection, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, setDoc, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // --- Components ---
 
@@ -80,9 +88,9 @@ const Navbar = ({ cartCount, onOpenCart, onOpenUser, onNavigate, user }: {
   ];
 
   return (
-    <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-black/90 backdrop-blur-md py-2' : 'bg-black py-4'} border-b border-white/10`}>
+    <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-black/90 backdrop-blur-md py-1' : 'bg-black py-2'} border-b border-white/10`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16 md:h-20">
+        <div className="flex justify-between items-center h-12 md:h-14">
           {/* Left: Menu Icon (Mobile) */}
           <div className="flex items-center lg:hidden">
             <button 
@@ -438,16 +446,79 @@ const ReviewsPage = ({ onBack }: { onBack: () => void }) => {
   );
 };
 
-const Hero = ({ onShopNow, promoImage }: { onShopNow: () => void, promoImage?: string }) => {
+const Hero = ({ onShopNow, videoUrl, imageUrl }: { onShopNow: () => void, videoUrl?: string, imageUrl?: string }) => {
   return (
-    <div className="pt-20">
-      <section className="relative w-full overflow-hidden bg-zinc-50 flex items-center justify-center">
-        <img 
-          src="https://i.imgur.com/Vriu71z.png" 
-          alt="Hero Model" 
-          className="w-full h-auto max-h-[85vh] object-contain"
-          referrerPolicy="no-referrer"
-        />
+    <div>
+      <section className="relative w-full overflow-hidden bg-zinc-50 flex items-center justify-center min-h-[400px] md:min-h-[700px]">
+        {videoUrl ? (
+          <video 
+            src={videoUrl} 
+            autoPlay 
+            loop 
+            muted 
+            playsInline 
+            className="w-full h-full absolute inset-0 object-cover"
+          />
+        ) : (
+          <img 
+            src={imageUrl || "https://i.imgur.com/Vriu71z.png"} 
+            alt="Hero Model" 
+            className="w-full h-full absolute inset-0 object-cover"
+            referrerPolicy="no-referrer"
+          />
+        )}
+        <div className="absolute inset-0 bg-black/20 z-10" />
+        <div className="relative z-20 text-center px-4 max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+            className="bg-white/90 backdrop-blur-md p-8 md:p-16 rounded-3xl shadow-2xl border border-white/20"
+          >
+            <span className="inline-block text-zinc-500 text-[10px] md:text-xs font-bold uppercase tracking-[0.4em] mb-6">Premium Formal Wear</span>
+            <h1 className="text-zinc-900 text-4xl md:text-7xl font-serif font-bold mb-8 tracking-tight leading-[1.1]">
+              আপনার ফরমাল স্টাইলকে <br />
+              <span className="text-zinc-800">আরও নিখুঁত করুন</span>
+            </h1>
+            <p className="text-zinc-600 text-sm md:text-lg mb-12 max-w-2xl mx-auto font-light leading-relaxed">
+              আমাদের এক্সক্লুসিভ কালেকশনে রয়েছে প্রিমিয়াম ও এক্সপোর্ট কোয়ালিটির ফরমাল প্যান্ট—যা আরাম, স্টাইল ও আত্মবিশ্বাসকে মাথায় রেখে। অফিস, মিটিং বা যেকোনো ফরমাল অনুষ্ঠানে আপনাকে দেবে এক অনন্য লুক।
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+              <button 
+                onClick={onShopNow}
+                className="group relative px-10 py-4 bg-zinc-900 text-white text-xs font-bold uppercase tracking-widest overflow-hidden transition-all hover:pr-14"
+              >
+                <span className="relative z-10">Explore Collection</span>
+                <ArrowRight className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all" size={16} />
+              </button>
+              <button 
+                onClick={() => {
+                  const el = document.getElementById('featured-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="px-10 py-4 border border-zinc-200 text-zinc-900 text-xs font-bold uppercase tracking-widest hover:bg-zinc-900 hover:text-white transition-all"
+              >
+                Learn More
+              </button>
+            </div>
+          </motion.div>
+        </div>
+        
+        {/* Scroll Indicator */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2 }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20"
+        >
+          <div className="w-[1px] h-16 bg-gradient-to-b from-white/50 to-transparent relative overflow-hidden">
+            <motion.div 
+              animate={{ y: ['-100%', '100%'] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-0 bg-white"
+            />
+          </div>
+        </motion.div>
       </section>
     </div>
   );
@@ -470,7 +541,7 @@ const BannerCarousel = ({ banners }: { banners: Banner[] }) => {
   const prev = () => setCurrentIndex((prev) => (prev - 1 + banners.length) % banners.length);
 
   return (
-    <div className="relative w-full h-[300px] md:h-[500px] overflow-hidden bg-zinc-100">
+    <div className="relative w-full bg-zinc-100">
       <AnimatePresence mode="wait">
         <motion.div
           key={currentIndex}
@@ -478,46 +549,41 @@ const BannerCarousel = ({ banners }: { banners: Banner[] }) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.7 }}
-          className="absolute inset-0"
+          className="w-full"
         >
-          <div className="absolute inset-0 bg-black/30 z-10" />
+          {(banners[currentIndex].title || banners[currentIndex].subtitle) && (
+            <div className="absolute inset-0 bg-black/30 z-10" />
+          )}
           <img
-            src={banners[currentIndex].image}
+            src={banners[currentIndex].image || null}
             alt={banners[currentIndex].title}
-            className="w-full h-full object-cover"
+            className="w-full h-auto block"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4">
-            <motion.h2
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="text-white text-3xl md:text-6xl font-serif font-bold mb-4 tracking-tight"
-            >
-              {banners[currentIndex].title}
-            </motion.h2>
-            {banners[currentIndex].subtitle && (
-              <motion.p
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="text-white/90 text-sm md:text-xl mb-8 max-w-2xl font-light"
-              >
-                {banners[currentIndex].subtitle}
-              </motion.p>
-            )}
-            <motion.button
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => banners[currentIndex].link && (window.location.href = banners[currentIndex].link)}
-              className="bg-white text-black px-8 py-3 rounded-full text-xs md:text-sm font-bold uppercase tracking-widest hover:bg-zinc-100 transition-colors shadow-lg"
-            >
-              {banners[currentIndex].buttonText || 'Shop Now'}
-            </motion.button>
-          </div>
+          {(banners[currentIndex].title || banners[currentIndex].subtitle) && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4">
+              {banners[currentIndex].title && (
+                <motion.h2
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-white text-3xl md:text-6xl font-serif font-bold mb-4 tracking-tight"
+                >
+                  {banners[currentIndex].title}
+                </motion.h2>
+              )}
+              {banners[currentIndex].subtitle && (
+                <motion.p
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-white/90 text-sm md:text-xl max-w-2xl font-light"
+                >
+                  {banners[currentIndex].subtitle}
+                </motion.p>
+              )}
+            </div>
+          )}
         </motion.div>
       </AnimatePresence>
 
@@ -550,11 +616,33 @@ const BannerCarousel = ({ banners }: { banners: Banner[] }) => {
   );
 };
 
-const ProductCard = ({ product, onSelect }: { 
+const ProductCard = ({ product, onSelect, showColorsOnRight }: { 
   product: Product, 
   onSelect: (p: Product) => void, 
-  key?: React.Key 
+  key?: React.Key,
+  showColorsOnRight?: boolean
 }) => {
+  const colorsList = Array.isArray(product.colors) 
+    ? product.colors 
+    : (typeof product.colors === 'string' ? product.colors.split(',').map((c: string) => c.trim()).filter(Boolean) : []);
+
+  const getColorCode = (colorName: string) => {
+    const name = colorName.toLowerCase().trim();
+    if (name.includes('navy')) return '#000080';
+    if (name.includes('black')) return '#000000';
+    if (name.includes('grey') || name.includes('gray')) return '#808080';
+    if (name.includes('white')) return '#ffffff';
+    if (name.includes('red')) return '#ff0000';
+    if (name.includes('blue')) return '#0000ff';
+    if (name.includes('green')) return '#008000';
+    if (name.includes('yellow')) return '#ffff00';
+    if (name.includes('brown')) return '#a52a2a';
+    if (name.includes('pink')) return '#ffc0cb';
+    if (name.includes('purple')) return '#800080';
+    if (name.includes('orange')) return '#ffa500';
+    return name;
+  };
+
   return (
     <motion.div 
       whileHover={{ y: -10 }}
@@ -563,17 +651,29 @@ const ProductCard = ({ product, onSelect }: {
     >
       <div className="relative overflow-hidden bg-white mb-4 rounded-xl md:rounded-2xl border border-zinc-100 shadow-sm group-hover:shadow-md transition-all duration-300">
         <img 
-          src={product.image} 
+          src={product.image || null} 
           alt={product.name} 
           className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-110"
           referrerPolicy="no-referrer"
           onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=800&auto=format&fit=crop'; }}
         />
-        {product.originalPrice > product.price && (
-          <div className="absolute top-2 left-2 md:top-4 md:left-4 bg-zinc-900 text-white text-[8px] md:text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded-sm">
-            Sale
+        <div className="absolute top-2 left-2 md:top-4 md:left-4 bg-zinc-900 text-white text-[8px] md:text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded-sm z-10">
+          SALE
+        </div>
+        
+        {showColorsOnRight && colorsList.length > 0 && (
+          <div className="absolute top-2 right-2 md:top-4 md:right-4 flex flex-col gap-1.5 z-10">
+            {colorsList.map((color: string, idx: number) => (
+              <div 
+                key={idx} 
+                className="w-4 h-4 md:w-5 md:h-5 rounded-full border border-zinc-200 shadow-sm"
+                style={{ backgroundColor: getColorCode(color) }}
+                title={color}
+              />
+            ))}
           </div>
         )}
+
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 flex items-end justify-center pb-4 md:pb-6 opacity-0 group-hover:opacity-100">
           <button className="bg-white text-zinc-900 px-4 md:px-6 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
             Quick View
@@ -593,12 +693,87 @@ const ProductCard = ({ product, onSelect }: {
   );
 };
 
-const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow, user }: { 
+const AutoScrollCarousel = ({ products, onSelect }: { products: Product[], onSelect: (p: Product) => void }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (scrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+        if (scrollLeft + clientWidth >= scrollWidth - 10) {
+          scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          const cardWidth = window.innerWidth < 768 ? 280 : 320;
+          scrollRef.current.scrollBy({ left: cardWidth + 24, behavior: 'smooth' });
+        }
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="w-full bg-zinc-50 pb-16 pt-8 overflow-hidden border-b border-zinc-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10 text-center">
+        <h2 className="text-3xl md:text-5xl font-serif font-bold text-zinc-900 mb-4 tracking-tight">Complete Collection Showcase</h2>
+        <p className="text-zinc-500 text-sm md:text-lg max-w-2xl mx-auto">Explore our premium selection of Formal Pants, Shirts, and Blazers, curated just for you.</p>
+      </div>
+      <div 
+        ref={scrollRef}
+        className="flex gap-6 overflow-x-auto snap-x snap-mandatory px-4 sm:px-6 lg:px-8 pb-8"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {products.map((product, idx) => (
+          <div key={`${product.id}-${idx}`} className="min-w-[280px] md:min-w-[320px] snap-start">
+            <ProductCard product={product} onSelect={onSelect} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const TopRatedCarousel = ({ products, onSelect }: { products: Product[], onSelect: (p: Product) => void }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (scrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+        if (scrollLeft + clientWidth >= scrollWidth - 10) {
+          scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          const cardWidth = window.innerWidth < 768 ? 280 : 320;
+          scrollRef.current.scrollBy({ left: cardWidth + 24, behavior: 'smooth' });
+        }
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="w-full overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+      <div 
+        ref={scrollRef}
+        className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-8"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {products.map((product, idx) => (
+          <div key={`${product.id}-${idx}`} className="min-w-[280px] md:min-w-[320px] snap-start">
+            <ProductCard product={product} onSelect={onSelect} showColorsOnRight={true} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow, user, showToast }: { 
   product: Product, 
   onAddToCart: (p: Product, size: any) => void, 
   onBack: () => void,
   onBuyNow: (p: Product, size: any) => void,
-  user: User | null
+  user: User | null,
+  showToast: (msg: string, type?: 'success' | 'error' | 'info') => void
 }) => {
   const [selectedSize, setSelectedSize] = useState<any>(null);
   const [activeImage, setActiveImage] = useState(product.image);
@@ -640,7 +815,7 @@ const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow, user }: {
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newReview.user_name || !newReview.comment) {
-      alert('Please fill in all fields');
+      showToast('Please fill in all fields', 'error');
       return;
     }
 
@@ -658,7 +833,7 @@ const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow, user }: {
       setNewReview({ user_name: '', rating: 5, comment: '' });
     } catch (error) {
       console.error('Failed to submit review:', error);
-      alert('Failed to submit review');
+      showToast('Failed to submit review', 'error');
     } finally {
       setIsSubmittingReview(false);
     }
@@ -691,7 +866,7 @@ const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow, user }: {
             onMouseMove={handleMouseMove}
           >
             <img 
-              src={activeImage} 
+              src={activeImage || null} 
               alt={product.name} 
               className={`w-full h-auto object-cover transition-transform duration-200 ${isZoomed ? 'scale-[2]' : 'scale-100'}`}
               style={{
@@ -710,7 +885,7 @@ const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow, user }: {
                   onClick={() => setActiveImage(img)}
                   className={`aspect-square border-2 overflow-hidden transition-all ${activeImage === img ? 'border-zinc-900' : 'border-transparent hover:border-zinc-200'}`}
                 >
-                  <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=800&auto=format&fit=crop'; }} />
+                  <img src={img || null} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=800&auto=format&fit=crop'; }} />
                 </button>
               ))}
             </div>
@@ -945,7 +1120,7 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQty, onRemove, onCheckout 
                 items.map((item, idx) => (
                   <div key={`${item.id}-${item.selectedSize}`} className="flex gap-4">
                     <div className="w-24 h-32 bg-zinc-100 flex-shrink-0">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=800&auto=format&fit=crop'; }} />
+                      <img src={item.image || null} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=800&auto=format&fit=crop'; }} />
                     </div>
                     <div className="flex-1 flex flex-col">
                       <div className="flex justify-between">
@@ -1003,7 +1178,7 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQty, onRemove, onCheckout 
   );
 };
 
-const CheckoutPage = ({ items, onBack, onComplete }: { items: CartItem[], onBack: () => void, onComplete: () => void }) => {
+const CheckoutPage = ({ items, onBack, onComplete, showToast }: { items: CartItem[], onBack: () => void, onComplete: () => void, showToast: (msg: string, type?: 'success' | 'error' | 'info') => void }) => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -1022,7 +1197,7 @@ const CheckoutPage = ({ items, onBack, onComplete }: { items: CartItem[], onBack
     e.preventDefault();
     
     if ((formData.paymentMethod === 'bKash' || formData.paymentMethod === 'Nagad') && !formData.transactionId) {
-      alert('Please enter the Transaction ID');
+      showToast('Please enter the Transaction ID', 'error');
       return;
     }
 
@@ -1044,7 +1219,7 @@ const CheckoutPage = ({ items, onBack, onComplete }: { items: CartItem[], onBack
       onComplete();
     } catch (error) {
       console.error("Checkout error:", error);
-      alert('Failed to place order. Please try again.');
+      showToast('Failed to place order. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -1169,7 +1344,7 @@ const CheckoutPage = ({ items, onBack, onComplete }: { items: CartItem[], onBack
                 >
                   <div className="flex justify-between items-center border-b border-white/10 pb-4">
                     <span className="text-sm text-white/60">Send Money to:</span>
-                    <span className="text-lg font-bold tracking-wider">01619835133</span>
+                    <span className="text-lg font-bold tracking-wider">01631496122</span>
                   </div>
                   <div className="space-y-2">
                     <p className="text-xs text-white/60 leading-relaxed">
@@ -1229,25 +1404,69 @@ const CheckoutPage = ({ items, onBack, onComplete }: { items: CartItem[], onBack
   );
 };
 
-const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshPromoImage }: { onBack: () => void, onRefreshProducts: () => void, onRefreshBanners: () => void, onRefreshPromoImage: () => void }) => {
+const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshPromoImage, onRefreshHeroVideo, onRefreshHeroImage, showToast }: { onBack: () => void, onRefreshProducts: () => void, onRefreshBanners: () => void, onRefreshPromoImage: () => void, onRefreshHeroVideo: () => void, onRefreshHeroImage: () => void, showToast: (msg: string, type?: 'success' | 'error' | 'info') => void }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [customers, setCustomers] = useState<User[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [promoImage, setPromoImage] = useState('');
-  const [categories, setCategories] = useState<string[]>(['Formal Pant', 'Office Wear', 'Premium Collection', 'Best Seller']);
+  const [topRatedOfferImage, setTopRatedOfferImage] = useState('');
+  const [categories, setCategories] = useState<string[]>(['Formal Pant', 'Formal Shirt', 'Blazer', 'Office Wear', 'Premium Collection', 'Best Seller']);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
-  const [email, setEmail] = useState('info@eleganbd.com');
+  const [email, setEmail] = useState('eleganbdltd@gmail.com');
   const [password, setPassword] = useState('eleganbd2026@#@#ssn');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [heroVideo, setHeroVideo] = useState('https://assets.mixkit.co/videos/preview/mixkit-man-in-a-suit-walking-slowly-4848-large.mp4');
+  const [heroImage, setHeroImage] = useState('https://i.imgur.com/Vriu71z.png');
+  const [isVideoGenerating, setIsVideoGenerating] = useState(false);
+  const [videoGenerationProgress, setVideoGenerationProgress] = useState('');
+  const [hasApiKey, setHasApiKey] = useState(false);
+
+  useEffect(() => {
+    const checkApiKey = async () => {
+      if (typeof window !== 'undefined' && (window as any).aistudio) {
+        const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+        setHasApiKey(hasKey);
+      }
+    };
+    checkApiKey();
+  }, []);
+
+  useEffect(() => {
+    const fetchHeroVideo = async () => {
+      const docSnap = await getDoc(doc(db, 'settings', 'hero_video'));
+      if (docSnap.exists() && docSnap.data().value) {
+        setHeroVideo(docSnap.data().value);
+      } else {
+        const defaultVideo = 'https://assets.mixkit.co/videos/preview/mixkit-man-in-a-suit-walking-slowly-4848-large.mp4';
+        setHeroVideo(defaultVideo);
+        await setDoc(doc(db, 'settings', 'hero_video'), { value: defaultVideo });
+      }
+    };
+    fetchHeroVideo();
+  }, []);
+
+  useEffect(() => {
+    const fetchHeroImage = async () => {
+      const docSnap = await getDoc(doc(db, 'settings', 'hero_image'));
+      if (docSnap.exists() && docSnap.data().value) {
+        setHeroImage(docSnap.data().value);
+      } else {
+        const defaultImage = 'https://i.imgur.com/Vriu71z.png';
+        setHeroImage(defaultImage);
+        await setDoc(doc(db, 'settings', 'hero_image'), { value: defaultImage });
+      }
+    };
+    fetchHeroImage();
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user && user.email === 'info@eleganbd.com') {
+      if (user && user.email === 'eleganbdltd@gmail.com') {
         setIsAuthenticated(true);
       }
     });
@@ -1257,6 +1476,7 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
   // Product Form State
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
   const [productFormData, setProductFormData] = useState({
     name: '',
     category: 'Formal Pant',
@@ -1278,7 +1498,7 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
     image: '',
     title: '',
     subtitle: '',
-    button_text: 'Shop Now',
+    buttonText: 'Shop Now',
     link: ''
   });
 
@@ -1290,6 +1510,8 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
     min_purchase: 0,
     expiry_date: ''
   });
+
+  const [confirmDialog, setConfirmDialog] = useState<{isOpen: boolean, message: string, onConfirm: () => void}>({isOpen: false, message: '', onConfirm: () => {}});
 
     useEffect(() => {
     if (isAuthenticated) {
@@ -1320,9 +1542,9 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
           setLoading(false);
         });
       } else if (activeTab === 'customization') {
-        getDoc(doc(db, 'settings', 'promo_image_hero')).then(docSnap => {
+        getDoc(doc(db, 'settings', 'top_rated_offer_image')).then(docSnap => {
           if (docSnap.exists()) {
-            setPromoImage(docSnap.data().value);
+            setTopRatedOfferImage(docSnap.data().value);
           }
           setLoading(false);
         });
@@ -1337,15 +1559,15 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
-      if (result.user.email === 'info@eleganbd.com' || result.user.email === 'sabbirrahmansr904@gmail.com') {
+      if (result.user.email === 'eleganbdltd@gmail.com' || result.user.email === 'sabbirrahmansr904@gmail.com') {
         setIsAuthenticated(true);
       } else {
-        alert('Unauthorized access. Only admins can log in.');
+        showToast('Unauthorized access. Only admins can log in.', 'error');
         await signOut(auth);
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      alert('Login error: ' + error.message);
+      showToast('Login error: ' + error.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -1375,12 +1597,14 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
 
       if (editingProduct) {
         await updateDoc(doc(db, 'products', editingProduct.id.toString()), dataToSave);
+        showToast('Product updated successfully', 'success');
       } else {
         await addDoc(collection(db, 'products'), {
           ...dataToSave,
           rating: 5.0,
           reviews: 0
         });
+        showToast('Product added successfully', 'success');
       }
       setShowProductForm(false);
       setEditingProduct(null);
@@ -1406,14 +1630,20 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
   };
 
   const deleteProduct = async (id: number | string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
-    try {
-      await deleteDoc(doc(db, 'products', id.toString()));
-      setProducts(prev => prev.filter(p => p.id !== id));
-      onRefreshProducts();
-    } catch (err) {
-      console.error(err);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      message: 'Are you sure you want to delete this product?',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'products', id.toString()));
+          setProducts(prev => prev.filter(p => p.id !== id));
+          onRefreshProducts();
+        } catch (err) {
+          console.error(err);
+        }
+        setConfirmDialog({isOpen: false, message: '', onConfirm: () => {}});
+      }
+    });
   };
 
   const startEdit = (product: Product) => {
@@ -1435,55 +1665,154 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
     setShowProductForm(true);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'banner' | 'promo' = 'product') => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'banner' | 'top_rated_offer' | 'hero_image' = 'product') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
     try {
-      const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
-      const { storage } = await import('./firebase');
-      const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
+      // Image compression logic
+      const compressImage = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const MAX_WIDTH = 1200;
+              const MAX_HEIGHT = 1200;
+              let width = img.width;
+              let height = img.height;
+
+              if (width > height) {
+                if (width > MAX_WIDTH) {
+                  height *= MAX_WIDTH / width;
+                  width = MAX_WIDTH;
+                }
+              } else {
+                if (height > MAX_HEIGHT) {
+                  width *= MAX_HEIGHT / height;
+                  height = MAX_HEIGHT;
+                }
+              }
+
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx?.drawImage(img, 0, 0, width, height);
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+              resolve(dataUrl);
+            };
+            img.onerror = (error) => reject(error);
+          };
+          reader.onerror = (error) => reject(error);
+        });
+      };
+
+      const url = await compressImage(file);
       
       if (type === 'product') {
-        setProductFormData({ ...productFormData, image: url });
+        setProductFormData(prev => ({ ...prev, image: url }));
       } else if (type === 'banner') {
-        setBannerFormData({ ...bannerFormData, image: url });
-      } else if (type === 'promo') {
-        setPromoImage(url);
+        setBannerFormData(prev => ({ ...prev, image: url }));
+      } else if (type === 'top_rated_offer') {
+        setTopRatedOfferImage(url);
+        await setDoc(doc(db, 'settings', 'top_rated_offer_image'), { value: url });
+        onRefreshPromoImage();
+      } else if (type === 'hero_image') {
+        setHeroImage(url);
+        await setDoc(doc(db, 'settings', 'hero_image'), { value: url });
+        onRefreshHeroImage();
       }
     } catch (err) {
       console.error('Upload failed:', err);
-      alert('Failed to upload image');
+      showToast('Image upload failed. Please try again.', 'error');
     } finally {
       setIsUploading(false);
     }
   };
 
+  const editBanner = (banner: Banner) => {
+    setEditingBanner(banner);
+    setBannerFormData({
+      image: banner.image,
+      title: banner.title || '',
+      subtitle: banner.subtitle || '',
+      link: banner.link || ''
+    } as any);
+    setShowBannerForm(true);
+  };
+
   const handleBannerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!bannerFormData.image) {
+      showToast('Please upload a banner image first.', 'error');
+      return;
+    }
     try {
-      await addDoc(collection(db, 'banners'), bannerFormData);
+      if (editingBanner && editingBanner.id) {
+        await updateDoc(doc(db, 'banners', editingBanner.id.toString()), bannerFormData);
+      } else {
+        if (banners.length >= 1) {
+          showToast('Maximum 1 banner allowed.', 'error');
+          return;
+        }
+        await addDoc(collection(db, 'banners'), {
+          ...bannerFormData,
+          created_at: new Date().toISOString()
+        });
+      }
       setShowBannerForm(false);
-      setBannerFormData({ image: '', title: '', subtitle: '', button_text: 'Shop Now', link: '' });
-      getDocs(collection(db, 'banners')).then(snapshot => setBanners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+      setEditingBanner(null);
+      setBannerFormData({ image: '', title: '', subtitle: '', link: '' } as any);
+      
+      // Refresh local banners list
+      const snapshot = await getDocs(collection(db, 'banners'));
+      setBanners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      
       onRefreshBanners();
     } catch (error) {
       console.error('Error saving banner:', error);
     }
   };
 
+  const clearAllBanners = async () => {
+    setConfirmDialog({
+      isOpen: true,
+      message: 'Are you sure you want to delete ALL banners? This cannot be undone.',
+      onConfirm: async () => {
+        try {
+          const snapshot = await getDocs(collection(db, 'banners'));
+          for (const docRef of snapshot.docs) {
+            await deleteDoc(doc(db, 'banners', docRef.id));
+          }
+          setBanners([]);
+          onRefreshBanners();
+        } catch (error) {
+          console.error('Error clearing banners:', error);
+        }
+        setConfirmDialog({isOpen: false, message: '', onConfirm: () => {}});
+      }
+    });
+  };
+
   const deleteBanner = async (id: number | string) => {
-    if (!confirm('Are you sure you want to delete this banner?')) return;
-    try {
-      await deleteDoc(doc(db, 'banners', id.toString()));
-      setBanners(prev => prev.filter(b => b.id !== id));
-      onRefreshBanners();
-    } catch (err) {
-      console.error(err);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      message: 'Are you sure you want to delete this banner?',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'banners', id.toString()));
+          setBanners(prev => prev.filter(b => b.id !== id));
+          onRefreshBanners();
+        } catch (err) {
+          console.error(err);
+        }
+        setConfirmDialog({isOpen: false, message: '', onConfirm: () => {}});
+      }
+    });
   };
 
   const handleCouponSubmit = async (e: React.FormEvent) => {
@@ -1499,35 +1828,28 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
   };
 
   const deleteCoupon = async (id: number | string) => {
-    if (!confirm('Are you sure you want to delete this coupon?')) return;
-    try {
-      await deleteDoc(doc(db, 'coupons', id.toString()));
-      setCoupons(prev => prev.filter(c => c.id !== id));
-    } catch (err) {
-      console.error(err);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      message: 'Are you sure you want to delete this coupon?',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'coupons', id.toString()));
+          setCoupons(prev => prev.filter(c => c.id !== id));
+        } catch (err) {
+          console.error(err);
+        }
+        setConfirmDialog({isOpen: false, message: '', onConfirm: () => {}});
+      }
+    });
   };
 
-  const handlePromoImageSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleDeleteTopRatedOfferImage = async () => {
     try {
-      await setDoc(doc(db, 'settings', 'promo_image_hero'), { value: promoImage });
-      alert('Promo image updated successfully');
+      await setDoc(doc(db, 'settings', 'top_rated_offer_image'), { value: '' });
+      setTopRatedOfferImage('');
       onRefreshPromoImage();
     } catch (error) {
-      console.error('Error saving promo image:', error);
-    }
-  };
-
-  const handleDeletePromoImage = async () => {
-    if (confirm('Are you sure you want to delete the promo image?')) {
-      try {
-        await setDoc(doc(db, 'settings', 'promo_image_hero'), { value: '' });
-        setPromoImage('');
-        onRefreshPromoImage();
-      } catch (error) {
-        console.error('Error deleting promo image:', error);
-      }
+      console.error('Error deleting offer image:', error);
     }
   };
 
@@ -1823,6 +2145,13 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
                                 <option value="Delivered">Delivered</option>
                                 <option value="Cancelled">Cancelled</option>
                               </select>
+                              <button 
+                                onClick={() => setSelectedOrder(order)}
+                                className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors"
+                                title="View Details"
+                              >
+                                <Eye size={16} />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -1833,6 +2162,116 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
               </div>
             )
           )}
+
+          {/* Order Details Modal */}
+          <AnimatePresence>
+            {selectedOrder && (
+              <>
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setSelectedOrder(null)}
+                  className="fixed inset-0 bg-black/40 z-[70] backdrop-blur-sm"
+                />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white z-[80] shadow-2xl rounded-2xl overflow-hidden max-h-[90vh] flex flex-col"
+                >
+                  <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50">
+                    <div>
+                      <h2 className="text-xl font-serif font-bold">Order Details</h2>
+                      <p className="text-xs text-zinc-500 font-mono mt-1">Order ID: #{selectedOrder.id}</p>
+                    </div>
+                    <button onClick={() => setSelectedOrder(null)} className="p-2 hover:bg-zinc-200 rounded-full transition-colors">
+                      <X size={24} />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                      <div>
+                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Customer Information</h4>
+                        <div className="space-y-2">
+                          <p className="text-sm font-bold">{selectedOrder.customer_name}</p>
+                          <p className="text-sm text-zinc-600">{selectedOrder.phone}</p>
+                          <p className="text-sm text-zinc-600 leading-relaxed">{selectedOrder.address}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Order Information</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-zinc-500">Status:</span>
+                            <span className="font-bold uppercase tracking-wider text-[10px]">{selectedOrder.status || 'Pending'}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-zinc-500">Payment:</span>
+                            <span className="font-bold uppercase tracking-wider text-[10px]">{selectedOrder.payment_method || 'COD'}</span>
+                          </div>
+                          {selectedOrder.transaction_id && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-zinc-500">TXID:</span>
+                              <span className="font-mono text-[10px]">{selectedOrder.transaction_id}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between text-sm">
+                            <span className="text-zinc-500">Date:</span>
+                            <span className="text-zinc-600">{selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleString() : 'N/A'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mb-10">
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-4">Ordered Products</h4>
+                      <div className="border border-zinc-100 rounded-xl overflow-hidden">
+                        <table className="w-full text-left text-sm">
+                          <thead className="bg-zinc-50 text-[10px] font-bold uppercase tracking-widest text-zinc-400 border-b border-zinc-100">
+                            <tr>
+                              <th className="py-3 px-4">Product</th>
+                              <th className="py-3 px-4">Size</th>
+                              <th className="py-3 px-4 text-center">Qty</th>
+                              <th className="py-3 px-4 text-right">Price</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(typeof selectedOrder.items === 'string' ? JSON.parse(selectedOrder.items) : selectedOrder.items).map((item: any, idx: number) => (
+                              <tr key={idx} className="border-b border-zinc-50 last:border-none">
+                                <td className="py-3 px-4">
+                                  <p className="font-bold text-zinc-900">{item.name}</p>
+                                  <p className="text-[10px] text-zinc-400 font-mono">CODE: {item.id}</p>
+                                </td>
+                                <td className="py-3 px-4 text-zinc-600">{item.selectedSize}</td>
+                                <td className="py-3 px-4 text-center font-bold">{item.quantity}</td>
+                                <td className="py-3 px-4 text-right font-bold">৳{item.price * item.quantity}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className="bg-zinc-900 text-white p-6 rounded-xl flex justify-between items-center">
+                      <span className="text-sm font-bold uppercase tracking-widest opacity-60">Total Amount</span>
+                      <span className="text-2xl font-bold">৳{selectedOrder.total_amount}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-6 border-t border-zinc-100 bg-zinc-50 flex justify-end">
+                    <button 
+                      onClick={() => setSelectedOrder(null)}
+                      className="px-8 py-3 bg-zinc-900 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-zinc-800 transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
           {activeTab === 'products' && (
             <div>
               <div className="flex justify-between items-center mb-6">
@@ -1849,7 +2288,10 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
                       fabric: 'Woven Cotton',
                       fit: 'Slim Fit',
                       description: '',
-                      sizes: '30, 32, 34, 36, 38'
+                      sizes: '30, 32, 34, 36, 38',
+                      colors: 'Black, Navy, Grey',
+                      stock: 100,
+                      stockStatus: 'In Stock'
                     });
                     setShowProductForm(true);
                   }}
@@ -1881,15 +2323,15 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
                       </div>
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Price (৳)</label>
-                        <input required type="number" className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.price} onChange={e => setProductFormData({...productFormData, price: parseInt(e.target.value)})} />
+                        <input required type="number" className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.price} onChange={e => setProductFormData({...productFormData, price: parseInt(e.target.value) || 0})} />
                       </div>
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Discount Price (৳)</label>
-                        <input required type="number" className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.originalPrice} onChange={e => setProductFormData({...productFormData, originalPrice: parseInt(e.target.value)})} />
+                        <input required type="number" className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.originalPrice} onChange={e => setProductFormData({...productFormData, originalPrice: parseInt(e.target.value) || 0})} />
                       </div>
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Stock Quantity</label>
-                        <input required type="number" className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.stock} onChange={e => setProductFormData({...productFormData, stock: parseInt(e.target.value)})} />
+                        <input required type="number" className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={productFormData.stock} onChange={e => setProductFormData({...productFormData, stock: parseInt(e.target.value) || 0})} />
                       </div>
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Stock Status</label>
@@ -1955,7 +2397,7 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.map(product => (
                   <div key={product.id} className="bg-white border border-zinc-100 p-4 flex gap-4 items-center shadow-sm rounded-xl">
-                    <img src={product.image} alt={product.name} className="w-20 h-20 object-cover rounded-lg" referrerPolicy="no-referrer" />
+                    <img src={product.image || null} alt={product.name} className="w-20 h-20 object-cover rounded-lg" referrerPolicy="no-referrer" />
                     <div className="flex-grow">
                       <h4 className="font-bold text-sm truncate max-w-[150px]">{product.name}</h4>
                       <p className="text-xs text-zinc-500">৳{product.price}</p>
@@ -1985,30 +2427,56 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
           {activeTab === 'banners' && (
             <div>
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-serif font-bold">Banner Management</h3>
-                <button 
-                  onClick={() => {
-                    setBannerFormData({ image: '', title: '', subtitle: '', button_text: 'Shop Now', link: '' });
-                    setShowBannerForm(true);
-                  }}
-                  className="btn-primary py-2 px-6 flex items-center gap-2 text-xs"
-                >
-                  <Plus size={16} /> Add Banner
-                </button>
+                <div>
+                  <h3 className="text-xl font-serif font-bold">Banner Management</h3>
+                  <p className="text-xs text-zinc-500 mt-1">Maximum 1 banner allowed for the hero section.</p>
+                </div>
+                <div className="flex gap-3">
+                  {banners.length > 0 && (
+                    <button 
+                      onClick={clearAllBanners}
+                      className="px-6 py-2 border border-red-100 text-red-600 hover:bg-red-50 transition-colors rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2"
+                    >
+                      <Trash2 size={16} /> Clear All
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => {
+                      if (banners.length >= 1) {
+                        showToast('You can only have a maximum of 1 banner. Please delete it before adding a new one.', 'error');
+                        return;
+                      }
+                      setEditingBanner(null);
+                      setBannerFormData({ image: '', title: '', subtitle: '', link: '' } as any);
+                      setShowBannerForm(true);
+                    }}
+                    disabled={banners.length >= 1}
+                    className={`py-2 px-6 flex items-center gap-2 text-xs rounded-lg font-bold uppercase tracking-widest transition-all ${
+                      banners.length >= 1 
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                        : 'btn-primary'
+                    }`}
+                  >
+                    <Plus size={16} /> Add Banner {banners.length >= 2 && '(Max 2)'}
+                  </button>
+                </div>
               </div>
 
               {showBannerForm && (
                 <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
                   <div className="bg-white w-full max-w-md p-8 rounded-xl">
                     <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-2xl font-serif font-bold">Add New Banner</h3>
-                      <button onClick={() => setShowBannerForm(false)}><X size={24} /></button>
+                      <h3 className="text-2xl font-serif font-bold">{editingBanner ? 'Edit Banner' : 'Add New Banner'}</h3>
+                      <button onClick={() => {
+                        setShowBannerForm(false);
+                        setEditingBanner(null);
+                      }}><X size={24} /></button>
                     </div>
                     <form onSubmit={handleBannerSubmit} className="space-y-4">
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Banner Image</label>
                         <div className="flex gap-4 items-center">
-                          {bannerFormData.image && <img src={bannerFormData.image} alt="Preview" className="w-20 h-20 object-cover rounded border border-zinc-200" referrerPolicy="no-referrer" />}
+                          {bannerFormData.image && <img src={bannerFormData.image} alt="Preview" className="w-40 h-20 object-cover rounded border border-zinc-200" referrerPolicy="no-referrer" />}
                           <div className="flex-grow">
                             <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'banner')} className="hidden" id="banner-image-upload" />
                             <label htmlFor="banner-image-upload" className="inline-block px-6 py-2 border border-zinc-200 text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-zinc-50 transition-colors">
@@ -2027,14 +2495,10 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
                         <input className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={bannerFormData.subtitle} onChange={e => setBannerFormData({...bannerFormData, subtitle: e.target.value})} placeholder="Up to 40% Off" />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Button Text</label>
-                        <input className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={bannerFormData.button_text} onChange={e => setBannerFormData({...bannerFormData, button_text: e.target.value})} placeholder="Shop Now" />
-                      </div>
-                      <div>
                         <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Link (Optional)</label>
                         <input className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900" value={bannerFormData.link} onChange={e => setBannerFormData({...bannerFormData, link: e.target.value})} placeholder="/category/formal-pant" />
                       </div>
-                      <button type="submit" className="w-full btn-primary py-3">Add Banner</button>
+                      <button type="submit" className="w-full btn-primary py-3">{editingBanner ? 'Update Banner' : 'Add Banner'}</button>
                     </form>
                   </div>
                 </div>
@@ -2043,9 +2507,12 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {banners.map(banner => (
                   <div key={banner.id} className="bg-white border border-zinc-100 p-4 rounded-xl shadow-sm group">
-                    <div className="relative aspect-[1536/1024] overflow-hidden rounded-lg mb-4">
-                      <img src={banner.image} alt="Banner" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                      <button onClick={() => deleteBanner(banner.id!)} className="absolute top-2 right-2 p-2 bg-white/90 text-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"><Trash2 size={18} /></button>
+                    <div className="relative aspect-[21/9] overflow-hidden rounded-lg mb-4 bg-zinc-100">
+                      <img src={banner.image || null} alt="Banner" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => editBanner(banner)} className="p-2 bg-white/90 text-zinc-900 rounded-full shadow-lg hover:bg-white transition-all"><Edit size={18} /></button>
+                        <button onClick={() => deleteBanner(banner.id!)} className="p-2 bg-white/90 text-red-600 rounded-full shadow-lg hover:bg-white transition-all"><Trash2 size={18} /></button>
+                      </div>
                     </div>
                     {banner.link && <p className="text-xs text-zinc-500">Link: {banner.link}</p>}
                   </div>
@@ -2187,50 +2654,82 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
           )}
 
           {activeTab === 'customization' && (
-            <div className="max-w-2xl">
-              <h3 className="text-xl font-serif font-bold mb-6">Site Customization</h3>
-              <div className="bg-white p-8 rounded-xl shadow-sm border border-zinc-100">
-                <form onSubmit={handlePromoImageSubmit} className="space-y-6">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Hero Promo Image (Below View Collection)</label>
-                    <div className="space-y-4">
-                      {promoImage && (
-                        <div className="relative aspect-video rounded-lg overflow-hidden border border-zinc-200">
-                          <img src={promoImage} alt="Promo Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                        </div>
-                      )}
-                      <div className="flex gap-4 items-center">
-                        <div className="flex-grow">
-                          <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'promo')} className="hidden" id="promo-image-upload" />
-                          <label htmlFor="promo-image-upload" className="inline-block px-6 py-2 border border-zinc-200 text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-zinc-50 transition-colors">
-                            {isUploading ? 'Uploading...' : 'Upload New Image'}
-                          </label>
-                          <input 
-                            className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900 text-sm mt-4" 
-                            value={promoImage} 
-                            onChange={e => setPromoImage(e.target.value)} 
-                            placeholder="Or enter image URL..." 
-                          />
+            <div className="max-w-2xl space-y-12">
+              <div>
+                <h3 className="text-xl font-serif font-bold mb-6">Site Customization</h3>
+                <div className="bg-white p-8 rounded-xl shadow-sm border border-zinc-100">
+                  <div className="space-y-8">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Offer Image (Above Complete Collection Showcase)</label>
+                      <div className="space-y-4">
+                        {topRatedOfferImage && (
+                          <div className="relative aspect-video rounded-lg overflow-hidden border border-zinc-200">
+                            <img src={topRatedOfferImage} alt="Offer Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          </div>
+                        )}
+                        <div className="flex gap-4 items-center">
+                          <div className="flex-grow">
+                            <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'top_rated_offer')} className="hidden" id="top-rated-offer-upload" />
+                            <label htmlFor="top-rated-offer-upload" className="inline-block px-6 py-2 border border-zinc-200 text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-zinc-50 transition-colors">
+                              {isUploading ? 'Uploading...' : 'Upload Offer Image'}
+                            </label>
+                            <input 
+                              className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900 text-sm mt-4" 
+                              value={topRatedOfferImage} 
+                              onChange={e => setTopRatedOfferImage(e.target.value)} 
+                              onBlur={async (e) => {
+                                try {
+                                  await setDoc(doc(db, 'settings', 'top_rated_offer_image'), { value: e.target.value });
+                                  onRefreshPromoImage();
+                                } catch (error) {
+                                  console.error('Error auto-saving offer image:', error);
+                                }
+                              }}
+                              placeholder="Or enter image URL..." 
+                            />
+                          </div>
+                          {topRatedOfferImage && (
+                            <button 
+                              type="button" 
+                              onClick={handleDeleteTopRatedOfferImage}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded"
+                            >
+                              <Trash2 size={20} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
                   </div>
-
-                  <button type="submit" className="btn-primary py-3 px-12">Save Changes</button>
-                  {promoImage && (
-                    <button 
-                      type="button" 
-                      onClick={handleDeletePromoImage}
-                      className="ml-4 px-12 py-3 border border-red-200 text-red-600 text-xs font-bold uppercase tracking-widest hover:bg-red-50 transition-colors"
-                    >
-                      Delete Image
-                    </button>
-                  )}
-                </form>
+                </div>
               </div>
             </div>
           )}
         </div>
+        
+        {/* Confirmation Dialog Modal */}
+        {confirmDialog.isOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full">
+              <h3 className="text-lg font-bold mb-4">Confirm Action</h3>
+              <p className="text-zinc-600 mb-6">{confirmDialog.message}</p>
+              <div className="flex justify-end gap-4">
+                <button 
+                  onClick={() => setConfirmDialog({isOpen: false, message: '', onConfirm: () => {}})}
+                  className="px-4 py-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmDialog.onConfirm}
+                  className="px-4 py-2 text-sm font-bold bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
@@ -2273,8 +2772,8 @@ const Footer = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
             <ul className="space-y-4 text-sm text-zinc-400">
               <li><button onClick={() => onNavigate('about')} className="hover:text-white transition-colors">About Elegan BD</button></li>
               <li><button onClick={() => onNavigate('contact')} className="hover:text-white transition-colors">Contact Us</button></li>
-              <li><button className="hover:text-white transition-colors">Privacy Policy</button></li>
-              <li><button className="hover:text-white transition-colors">Terms & Conditions</button></li>
+              <li><button onClick={() => onNavigate('privacy-policy')} className="hover:text-white transition-colors">Privacy Policy</button></li>
+              <li><button onClick={() => onNavigate('terms-conditions')} className="hover:text-white transition-colors">Terms & Conditions</button></li>
             </ul>
           </div>
 
@@ -2287,7 +2786,7 @@ const Footer = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
                 </div>
                 <div className="text-left">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Email Us</p>
-                  <p className="text-sm text-zinc-300">info@eleganbd.com</p>
+                  <p className="text-sm text-zinc-300">eleganbdltd@gmail.com</p>
                 </div>
               </div>
               <div className="flex items-center gap-4 group cursor-pointer">
@@ -2296,7 +2795,8 @@ const Footer = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
                 </div>
                 <div className="text-left">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Call Us</p>
-                  <p className="text-sm text-zinc-300">+8801619835133</p>
+                  <p className="text-sm text-zinc-300">+8801631496122</p>
+                  <p className="text-sm text-zinc-300">+8801623-766036</p>
                 </div>
               </div>
             </div>
@@ -2328,10 +2828,18 @@ const Footer = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
   const [currentPage, setCurrentPage] = useState(() => localStorage.getItem('elegan_page') || 'home');
   const [products, setProducts] = useState<Product[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
-  const [promoImageHero, setPromoImageHero] = useState('');
+  const [topRatedOfferImage, setTopRatedOfferImage] = useState('https://i.ibb.co/v4mYv0T/formal-pant-sale.png');
+  const [heroVideo, setHeroVideo] = useState('https://assets.mixkit.co/videos/preview/mixkit-man-in-a-suit-walking-slowly-4848-large.mp4');
+  const [heroImage, setHeroImage] = useState('https://i.imgur.com/Vriu71z.png');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -2351,7 +2859,105 @@ export default function App() {
     try {
       const snapshot = await getDocs(collection(db, 'products'));
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setProducts(data);
+      
+      if (data.length === 0) {
+        const defaults = [
+          {
+            name: "Premium Navy Formal Pant",
+            price: 1250,
+            original_price: 1850,
+            image: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=1000&auto=format&fit=crop",
+            category: "Formal Pant",
+            rating: 4.9,
+            reviews: 124,
+            fabric: "Premium Tropical",
+            fit: "Slim Fit",
+            description: "Our signature formal pant designed for maximum comfort and style."
+          },
+          {
+            name: "Classic White Formal Shirt",
+            price: 1450,
+            original_price: 1950,
+            image: "https://images.unsplash.com/photo-1598033129183-c4f50c7176c8?q=80&w=1000&auto=format&fit=crop",
+            category: "Formal Shirt",
+            rating: 4.8,
+            reviews: 86,
+            fabric: "Egyptian Cotton",
+            fit: "Regular Fit",
+            description: "A timeless classic white shirt for every formal occasion."
+          },
+          {
+            name: "Sky Blue Executive Shirt",
+            price: 1550,
+            original_price: 2150,
+            image: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?q=80&w=1000&auto=format&fit=crop",
+            category: "Formal Shirt",
+            rating: 4.9,
+            reviews: 92,
+            fabric: "Giza Cotton",
+            fit: "Slim Fit",
+            description: "Professional sky blue shirt with a premium finish."
+          },
+          {
+            name: "Charcoal Grey Formal Pant",
+            price: 1250,
+            original_price: 1850,
+            image: "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?q=80&w=1000&auto=format&fit=crop",
+            category: "Formal Pant",
+            rating: 4.7,
+            reviews: 108,
+            fabric: "Premium Tropical",
+            fit: "Slim Fit",
+            description: "Versatile charcoal grey pant for daily office wear."
+          },
+          {
+            name: "Midnight Black Formal Shirt",
+            price: 1650,
+            original_price: 2250,
+            image: "https://images.unsplash.com/photo-1603252109303-2751441dd157?q=80&w=1000&auto=format&fit=crop",
+            category: "Formal Shirt",
+            rating: 4.8,
+            reviews: 74,
+            fabric: "Oxford Cotton",
+            fit: "Slim Fit",
+            description: "Elegant black shirt for evening events and formal meetings."
+          },
+          {
+            name: "Light Pink Formal Shirt",
+            price: 1450,
+            original_price: 1950,
+            image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?q=80&w=1000&auto=format&fit=crop",
+            category: "Formal Shirt",
+            rating: 4.7,
+            reviews: 65,
+            fabric: "Premium Cotton",
+            fit: "Regular Fit",
+            description: "Sophisticated light pink shirt for a modern look."
+          },
+          {
+            name: "Striped Executive Shirt",
+            price: 1750,
+            original_price: 2450,
+            image: "https://images.unsplash.com/photo-1593030761757-71fae45fa0e7?q=80&w=1000&auto=format&fit=crop",
+            category: "Formal Shirt",
+            rating: 4.9,
+            reviews: 58,
+            fabric: "Italian Cotton",
+            fit: "Slim Fit",
+            description: "Premium striped shirt for the bold professional."
+          }
+        ];
+        
+        for (const product of defaults) {
+          await addDoc(collection(db, 'products'), product);
+        }
+        
+        const newSnapshot = await getDocs(collection(db, 'products'));
+        const newData = newSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setProducts(newData);
+      } else {
+        setProducts(data);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -2369,19 +2975,85 @@ export default function App() {
 
   const fetchPromoImage = async () => {
     try {
-      const docSnap = await getDoc(doc(db, 'settings', 'promo_image_hero'));
-      if (docSnap.exists()) {
-        setPromoImageHero(docSnap.data().value);
+      const offerSnap = await getDoc(doc(db, 'settings', 'top_rated_offer_image'));
+      if (offerSnap.exists() && offerSnap.data().value) {
+        setTopRatedOfferImage(offerSnap.data().value);
+      } else {
+        // Default high-quality image provided by user
+        const defaultImage = 'https://i.ibb.co/v4mYv0T/formal-pant-sale.png';
+        setTopRatedOfferImage(defaultImage);
+        await setDoc(doc(db, 'settings', 'top_rated_offer_image'), { value: defaultImage });
       }
     } catch (err) {
       console.error(err);
     }
   };
 
+  const fetchHeroVideo = async () => {
+    try {
+      const docSnap = await getDoc(doc(db, 'settings', 'hero_video'));
+      if (docSnap.exists() && docSnap.data().value) {
+        setHeroVideo(docSnap.data().value);
+      } else {
+        const defaultVideo = 'https://assets.mixkit.co/videos/preview/mixkit-man-in-a-suit-walking-slowly-4848-large.mp4';
+        setHeroVideo(defaultVideo);
+        await setDoc(doc(db, 'settings', 'hero_video'), { value: defaultVideo });
+      }
+    } catch (err) {
+      console.error('Error fetching hero video:', err);
+    }
+  };
+
+  const fetchHeroImage = async () => {
+    try {
+      const docSnap = await getDoc(doc(db, 'settings', 'hero_image'));
+      if (docSnap.exists() && docSnap.data().value) {
+        setHeroImage(docSnap.data().value);
+      } else {
+        const defaultImage = 'https://i.imgur.com/Vriu71z.png';
+        setHeroImage(defaultImage);
+        await setDoc(doc(db, 'settings', 'hero_image'), { value: defaultImage });
+      }
+    } catch (err) {
+      console.error('Error fetching hero image:', err);
+    }
+  };
+
   useEffect(() => {
+    const manageBanners = async () => {
+      const hasManaged = localStorage.getItem('banners_managed_v6');
+      if (!hasManaged) {
+        try {
+          // 1. Cleanup existing banners
+          const snapshot = await getDocs(collection(db, 'banners'));
+          for (const docRef of snapshot.docs) {
+            await deleteDoc(doc(db, 'banners', docRef.id));
+          }
+          
+          // 2. Seed the specific banner provided by user with a fixed ID
+          await setDoc(doc(db, 'banners', 'default_hero_banner'), {
+            image: 'https://images.unsplash.com/photo-1490515642209-717d61d5b0f0?auto=format&fit=crop&q=80&w=1920',
+            title: '',
+            subtitle: '',
+            buttonText: 'SHOP NOW!',
+            link: '/shop',
+            created_at: new Date().toISOString()
+          });
+
+          localStorage.setItem('banners_managed_v6', 'true');
+          await fetchBanners();
+        } catch (err) {
+          console.error('Banner management error:', err);
+        }
+      }
+    };
+
+    manageBanners();
     fetchProducts();
     fetchBanners();
     fetchPromoImage();
+    fetchHeroVideo();
+    fetchHeroImage();
 
     const splashTimer = setTimeout(() => {
       setShowSplash(false);
@@ -2478,56 +3150,145 @@ export default function App() {
         onRefreshProducts={fetchProducts}
         onRefreshBanners={fetchBanners}
         onRefreshPromoImage={fetchPromoImage}
+        onRefreshHeroVideo={fetchHeroVideo}
+        onRefreshHeroImage={fetchHeroImage}
+        showToast={showToast}
       />
     );
   }
 
+  const pants = products.filter(p => !p.category || p.category === 'Formal Pant');
+  const shirts = products.filter(p => p.category === 'Formal Shirt');
+  const blazers = products.filter(p => p.category === 'Blazer');
+
+  const interleavedProducts: Product[] = [];
+  const maxLength = Math.max(pants.length, shirts.length, blazers.length);
+
+  for (let i = 0; i < maxLength; i++) {
+    if (i < pants.length) interleavedProducts.push(pants[i]);
+    if (i < shirts.length) interleavedProducts.push(shirts[i]);
+    if (i < blazers.length) interleavedProducts.push(blazers[i]);
+  }
+
   return (
     <div className="min-h-screen flex flex-col font-sans selection:bg-zinc-900 selection:text-white">
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: 20, x: '-50%' }}
+            className={`fixed bottom-10 left-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 backdrop-blur-md border ${
+              toast.type === 'success' ? 'bg-green-500/90 border-green-400 text-white' :
+              toast.type === 'error' ? 'bg-red-500/90 border-red-400 text-white' :
+              'bg-zinc-900/90 border-zinc-800 text-white'
+            }`}
+          >
+            {toast.type === 'success' && <CheckCircle2 size={18} />}
+            {toast.type === 'error' && <AlertCircle size={18} />}
+            {toast.type === 'info' && <Loader2 size={18} className="animate-spin" />}
+            <span className="text-xs font-bold uppercase tracking-widest">{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {showSplash && (
           <motion.div
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.8, ease: "easeInOut" }}
-            className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center"
+            exit={{ 
+              y: '-100%',
+              transition: { duration: 1.2, ease: [0.76, 0, 0.24, 1] }
+            }}
+            className="fixed inset-0 z-[1000] bg-zinc-950 flex flex-col items-center justify-center overflow-hidden"
           >
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="relative"
-            >
-              <img 
-                src="https://i.postimg.cc/csPJTT4H/1000047673-removebg-preview.png" 
-                alt="Elegan BD Logo" 
-                className="w-32 h-32 md:w-48 md:h-48 object-contain"
-                referrerPolicy="no-referrer"
-              />
-              <motion.div 
-                className="absolute -inset-4 border-2 border-white/20 rounded-full"
-                animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.5, 0.2] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
-            </motion.div>
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="mt-8 text-center"
-            >
-              <h1 className="text-white text-2xl md:text-4xl font-serif font-bold tracking-[0.3em] uppercase">Elegan BD</h1>
-              <div className="mt-4 flex gap-1 justify-center">
-                {[0, 1, 2].map((i) => (
-                  <motion.div
-                    key={i}
-                    className="w-1.5 h-1.5 bg-white rounded-full"
-                    animate={{ opacity: [0.2, 1, 0.2] }}
-                    transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+            {/* Background Decorative Elements */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 0.1, scale: 1 }}
+              transition={{ duration: 2 }}
+              className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.15)_0%,transparent_70%)]"
+            />
+            
+            <div className="relative flex flex-col items-center">
+              {/* Logo Animation */}
+              <motion.div
+                initial={{ y: 40, opacity: 0, scale: 0.9 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                transition={{ 
+                  duration: 1.5, 
+                  ease: [0.22, 1, 0.36, 1] 
+                }}
+                className="relative z-10"
+              >
+                <div className="relative">
+                  <img 
+                    src="https://i.postimg.cc/csPJTT4H/1000047673-removebg-preview.png" 
+                    alt="Elegan BD Logo" 
+                    className="w-32 h-32 md:w-48 md:h-48 object-contain brightness-110 contrast-125"
+                    referrerPolicy="no-referrer"
                   />
-                ))}
+                  {/* Subtle Glow behind logo */}
+                  <motion.div 
+                    animate={{ 
+                      opacity: [0.2, 0.4, 0.2],
+                      scale: [1, 1.1, 1]
+                    }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute inset-0 bg-white/20 blur-3xl rounded-full -z-10"
+                  />
+                </div>
+              </motion.div>
+
+              {/* Brand Name with Letter Animation */}
+              <div className="mt-12 overflow-hidden">
+                <motion.h1 
+                  initial={{ y: 100 }}
+                  animate={{ y: 0 }}
+                  transition={{ 
+                    duration: 1, 
+                    delay: 0.5,
+                    ease: [0.22, 1, 0.36, 1]
+                  }}
+                  className="text-white text-3xl md:text-5xl font-serif font-bold tracking-[0.4em] uppercase"
+                >
+                  Elegan BD
+                </motion.h1>
               </div>
-            </motion.div>
+
+              {/* Elegant Loading Line */}
+              <div className="mt-8 w-48 h-[1px] bg-white/10 relative overflow-hidden">
+                <motion.div 
+                  initial={{ x: '-100%' }}
+                  animate={{ x: '100%' }}
+                  transition={{ 
+                    duration: 2, 
+                    repeat: Infinity, 
+                    ease: "easeInOut" 
+                  }}
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                />
+              </div>
+
+              {/* Subtitle */}
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                transition={{ delay: 1.2, duration: 1 }}
+                className="mt-6 text-white/60 text-[10px] uppercase tracking-[0.5em] font-medium"
+              >
+                Premium Men's Formal Wear
+              </motion.p>
+            </div>
+
+            {/* Bottom Accent */}
+            <motion.div 
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 1.5, delay: 0.2 }}
+              className="absolute bottom-12 w-32 h-[1px] bg-white/20 origin-center"
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -2542,22 +3303,46 @@ export default function App() {
 
       <main className="flex-grow">
         {currentPage === 'home' && (
-          <>
+          <div className="pt-16">
+            <BannerCarousel banners={banners} />
             <Hero 
               onShopNow={() => handleNavigate('shop')} 
-              promoImage={promoImageHero}
+              videoUrl={heroVideo}
+              imageUrl={heroImage}
             />
             
-            {/* Featured Section */}
-            <section className="py-16 md:py-32 bg-white">
+            {topRatedOfferImage && (
+              <div className="w-full bg-zinc-50 pt-16 pb-8 border-t border-zinc-100">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="w-full rounded-2xl overflow-hidden shadow-lg border border-zinc-100"
+                  >
+                    <img 
+                      src={topRatedOfferImage} 
+                      alt="Special Offer" 
+                      className="w-full h-auto object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  </motion.div>
+                </div>
+              </div>
+            )}
+
+            <AutoScrollCarousel products={interleavedProducts} onSelect={handleProductSelect} />
+
+            {/* Formal Pant Section */}
+            <section id="formal-pant-section" className="py-16 md:py-24 bg-white">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-12 md:mb-20">
-                  <h2 className="text-3xl md:text-6xl font-serif font-bold text-zinc-900 mb-6 tracking-tight">Explore Our Top Collections</h2>
+                <div className="text-center mb-12 md:mb-16">
+                  <h2 className="text-3xl md:text-5xl font-serif font-bold text-zinc-900 mb-4 tracking-tight">Formal Pant Collection</h2>
                   <p className="max-w-2xl mx-auto text-zinc-500 text-sm md:text-lg leading-relaxed">
                     আপনার প্রতিদিনের অফিস ও ফরমাল লুককে আরও স্টাইলিশ করতে আমাদের প্রিমিয়াম ফরমাল প্যান্ট কালেকশন। নিখুঁত ফিটিং, আরামদায়ক ফেব্রিক ও এলিগেন্ট কালার—সব একসাথে।
                   </p>
                 </div>
-                <div className="grid grid-cols-1 gap-10 max-w-md mx-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 max-w-7xl mx-auto">
                   {products
                     .filter(p => !p.category || p.category === 'Formal Pant')
                     .map(product => (
@@ -2569,6 +3354,72 @@ export default function App() {
                     ))
                   }
                 </div>
+              </div>
+            </section>
+
+            {/* Formal Shirt Section */}
+            <section id="formal-shirt-section" className="py-16 md:py-24 bg-zinc-50">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-12 md:mb-16">
+                  <h2 className="text-3xl md:text-5xl font-serif font-bold text-zinc-900 mb-4 tracking-tight">Formal Shirt Collection</h2>
+                  <p className="max-w-2xl mx-auto text-zinc-500 text-sm md:text-lg leading-relaxed">
+                    আরামদায়ক ফেব্রিক ও নিখুঁত ফিটিং এর এক্সক্লুসিভ ফরমাল শার্ট। আপনার স্মার্ট লুকের জন্য সেরা পছন্দ।
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 max-w-7xl mx-auto">
+                  {products
+                    .filter(p => p.category === 'Formal Shirt')
+                    .map(product => (
+                      <ProductCard 
+                        key={product.id} 
+                        product={product} 
+                        onSelect={handleProductSelect} 
+                      />
+                    ))
+                  }
+                </div>
+              </div>
+            </section>
+
+            {/* Blazer Section */}
+            <section id="blazer-section" className="py-16 md:py-24 bg-white">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-12 md:mb-16">
+                  <h2 className="text-3xl md:text-5xl font-serif font-bold text-zinc-900 mb-4 tracking-tight">Premium Blazers</h2>
+                  <p className="max-w-2xl mx-auto text-zinc-500 text-sm md:text-lg leading-relaxed">
+                    যেকোনো অনুষ্ঠানে নিজেকে আকর্ষণীয় করে তুলতে আমাদের প্রিমিয়াম ব্লেজার কালেকশন।
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 max-w-7xl mx-auto">
+                  {products
+                    .filter(p => p.category === 'Blazer')
+                    .map(product => (
+                      <ProductCard 
+                        key={product.id} 
+                        product={product} 
+                        onSelect={handleProductSelect} 
+                      />
+                    ))
+                  }
+                </div>
+              </div>
+            </section>
+
+            {/* Top Rated Products Section */}
+            <section className="py-16 md:py-32 bg-zinc-50">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-12 md:mb-20">
+                  <h2 className="text-3xl md:text-6xl font-serif font-bold text-zinc-900 mb-6 tracking-tight">Top Rated Products</h2>
+                  <p className="max-w-2xl mx-auto text-zinc-500 text-sm md:text-lg leading-relaxed">
+                    আমাদের গ্রাহকদের সবচেয়ে পছন্দের এবং সর্বোচ্চ রেটিং প্রাপ্ত প্রোডাক্টগুলো দেখে নিন।
+                  </p>
+                </div>
+                <TopRatedCarousel 
+                  products={products
+                    .filter(p => (!p.category || p.category === 'Formal Pant' || p.category === 'Formal Shirt' || p.category === 'Blazer') && p.rating >= 4.8)
+                    .slice(0, 6)}
+                  onSelect={handleProductSelect}
+                />
               </div>
             </section>
 
@@ -2600,7 +3451,7 @@ export default function App() {
                 </div>
               </div>
             </section>
-          </>
+          </div>
         )}
 
         {currentPage === 'shop' && (
@@ -2621,6 +3472,8 @@ export default function App() {
                   >
                     <option value="">All Categories</option>
                     <option value="Formal Pant">Formal Pant</option>
+                    <option value="Formal Shirt">Formal Shirt</option>
+                    <option value="Blazer">Blazer</option>
                   </select>
                 </div>
                 <div className="flex flex-col gap-2 min-w-[200px]">
@@ -2632,9 +3485,9 @@ export default function App() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-10 max-w-md mx-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 max-w-7xl mx-auto">
                 {products
-                  .filter(product => (!selectedCategory || product.category === selectedCategory) && (product.category === 'Formal Pant' || !product.category))
+                  .filter(product => (!selectedCategory || product.category === selectedCategory))
                   .map(product => (
                     <ProductCard 
                       key={product.id} 
@@ -2655,6 +3508,7 @@ export default function App() {
             onBack={() => handleNavigate('shop')} 
             onBuyNow={handleBuyNow}
             user={user}
+            showToast={showToast}
           />
         )}
 
@@ -2663,6 +3517,7 @@ export default function App() {
             items={cart} 
             onBack={() => setCurrentPage('shop')} 
             onComplete={handleCheckoutComplete}
+            showToast={showToast}
           />
         )}
 
@@ -2676,6 +3531,9 @@ export default function App() {
             onRefreshProducts={fetchProducts}
             onRefreshBanners={fetchBanners}
             onRefreshPromoImage={fetchPromoImage}
+            onRefreshHeroVideo={fetchHeroVideo}
+            onRefreshHeroImage={fetchHeroImage}
+            showToast={showToast}
           />
         )}
 
@@ -2743,17 +3601,18 @@ export default function App() {
                 <div className="bg-zinc-50 p-8 text-center">
                   <Phone className="mx-auto mb-4 text-zinc-900" size={24} />
                   <h3 className="font-bold uppercase tracking-widest text-xs mb-2">Call Us</h3>
-                  <p className="text-zinc-600">+8801619835133</p>
+                  <p className="text-zinc-600">+8801631496122</p>
+                  <p className="text-zinc-600">+8801623-766036</p>
                 </div>
                 <div className="bg-zinc-50 p-8 text-center">
                   <Mail className="mx-auto mb-4 text-zinc-900" size={24} />
                   <h3 className="font-bold uppercase tracking-widest text-xs mb-2">Email</h3>
-                  <p className="text-zinc-600">info@eleganbd.com</p>
+                  <p className="text-zinc-600">eleganbdltd@gmail.com</p>
                 </div>
                 <div className="bg-zinc-50 p-8 text-center">
                   <MessageCircle className="mx-auto mb-4 text-zinc-900" size={24} />
                   <h3 className="font-bold uppercase tracking-widest text-xs mb-2">WhatsApp</h3>
-                  <p className="text-zinc-600">+8801619835133</p>
+                  <p className="text-zinc-600">+8801631496122</p>
                 </div>
               </div>
 
@@ -2819,10 +3678,10 @@ export default function App() {
                     To start an exchange or return process, please contact our customer support team via WhatsApp or Phone within 72 hours of delivery.
                   </p>
                   <div className="flex flex-wrap gap-4">
-                    <a href="tel:+8801700000000" className="inline-flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-zinc-800 transition-colors">
+                    <a href="tel:+8801631496122" className="inline-flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-zinc-800 transition-colors">
                       <Phone size={16} /> Call Support
                     </a>
-                    <a href="https://wa.me/8801700000000" className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-green-700 transition-colors">
+                    <a href="https://wa.me/8801631496122" className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-green-700 transition-colors">
                       <MessageCircle size={16} /> WhatsApp Us
                     </a>
                   </div>
@@ -2834,6 +3693,55 @@ export default function App() {
                     Refunds are only processed if the product is found to have a manufacturing defect and a replacement is not available. Refunds will be issued to the original payment method within 7-10 working days.
                   </p>
                 </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {currentPage === 'privacy-policy' && (
+          <section className="pt-32 pb-24">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h1 className="text-4xl font-serif font-bold text-zinc-900 mb-8 text-center">Privacy Policy</h1>
+              <div className="prose prose-zinc max-w-none space-y-6 text-zinc-600">
+                <p>At Elegan BD, we are committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your personal information.</p>
+                
+                <h3 className="text-xl font-serif font-bold text-zinc-900 mt-8">Information Collection</h3>
+                <p>We collect information you provide directly to us, such as when you create an account, make a purchase, or contact our customer support. This may include your name, email address, phone number, and shipping address.</p>
+                
+                <h3 className="text-xl font-serif font-bold text-zinc-900 mt-8">How We Use Your Information</h3>
+                <p>We use your information to process orders, provide customer support, and improve our services. We may also use your contact information to send you updates about your order or promotional offers, which you can opt out of at any time.</p>
+                
+                <h3 className="text-xl font-serif font-bold text-zinc-900 mt-8">Data Security</h3>
+                <p>We implement a variety of security measures to maintain the safety of your personal information. Your personal information is contained behind secured networks and is only accessible by a limited number of persons who have special access rights to such systems.</p>
+                
+                <h3 className="text-xl font-serif font-bold text-zinc-900 mt-8">Cookies</h3>
+                <p>We use cookies to enhance your experience on our site. Cookies are small files that a site or its service provider transfers to your computer's hard drive through your Web browser that enables the site's or service provider's systems to recognize your browser and capture and remember certain information.</p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {currentPage === 'terms-conditions' && (
+          <section className="pt-32 pb-24">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h1 className="text-4xl font-serif font-bold text-zinc-900 mb-8 text-center">Terms & Conditions</h1>
+              <div className="prose prose-zinc max-w-none space-y-6 text-zinc-600">
+                <p>Welcome to Elegan BD. By accessing or using our website, you agree to be bound by these Terms & Conditions.</p>
+                
+                <h3 className="text-xl font-serif font-bold text-zinc-900 mt-8">Product Information</h3>
+                <p>We strive to provide accurate information about our products, including descriptions and pricing. However, we do not warrant that product descriptions or other content are accurate, complete, reliable, current, or error-free.</p>
+                
+                <h3 className="text-xl font-serif font-bold text-zinc-900 mt-8">Ordering & Payment</h3>
+                <p>By placing an order, you are offering to purchase a product. All orders are subject to availability and confirmation of the order price. We accept various payment methods as indicated on our checkout page.</p>
+                
+                <h3 className="text-xl font-serif font-bold text-zinc-900 mt-8">Shipping & Delivery</h3>
+                <p>Delivery times may vary based on your location. We are not responsible for any delays caused by the shipping carrier or customs processing.</p>
+                
+                <h3 className="text-xl font-serif font-bold text-zinc-900 mt-8">Limitation of Liability</h3>
+                <p>Elegan BD shall not be liable for any special or consequential damages that result from the use of, or the inability to use, the materials on this site or the performance of the products.</p>
+                
+                <h3 className="text-xl font-serif font-bold text-zinc-900 mt-8">Governing Law</h3>
+                <p>These Terms & Conditions are governed by and construed in accordance with the laws of Bangladesh.</p>
               </div>
             </div>
           </section>

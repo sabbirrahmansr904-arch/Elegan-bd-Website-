@@ -46,13 +46,13 @@ export interface Order {
 }
 
 export interface Banner {
-  id: number;
+  id: string | number;
   image: string;
   title: string;
   subtitle?: string;
   buttonText?: string;
   link: string;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface Coupon {
