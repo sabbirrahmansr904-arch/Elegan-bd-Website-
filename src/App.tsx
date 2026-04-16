@@ -38,7 +38,8 @@ import {
   Wand2,
   Loader2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Heart
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { Product, CartItem, User, Order, Banner, Coupon, Review } from './types';
@@ -468,57 +469,6 @@ const Hero = ({ onShopNow, videoUrl, imageUrl }: { onShopNow: () => void, videoU
           />
         )}
         <div className="absolute inset-0 bg-black/20 z-10" />
-        <div className="relative z-20 text-center px-4 max-w-4xl">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-            className="bg-white/90 backdrop-blur-md p-8 md:p-16 rounded-3xl shadow-2xl border border-white/20"
-          >
-            <span className="inline-block text-zinc-500 text-[10px] md:text-xs font-bold uppercase tracking-[0.4em] mb-6">Premium Formal Wear</span>
-            <h1 className="text-zinc-900 text-4xl md:text-7xl font-serif font-bold mb-8 tracking-tight leading-[1.1]">
-              আপনার ফরমাল স্টাইলকে <br />
-              <span className="text-zinc-800">আরও নিখুঁত করুন</span>
-            </h1>
-            <p className="text-zinc-600 text-sm md:text-lg mb-12 max-w-2xl mx-auto font-light leading-relaxed">
-              আমাদের এক্সক্লুসিভ কালেকশনে রয়েছে প্রিমিয়াম ও এক্সপোর্ট কোয়ালিটির ফরমাল প্যান্ট—যা আরাম, স্টাইল ও আত্মবিশ্বাসকে মাথায় রেখে। অফিস, মিটিং বা যেকোনো ফরমাল অনুষ্ঠানে আপনাকে দেবে এক অনন্য লুক।
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-              <button 
-                onClick={onShopNow}
-                className="group relative px-10 py-4 bg-zinc-900 text-white text-xs font-bold uppercase tracking-widest overflow-hidden transition-all hover:pr-14"
-              >
-                <span className="relative z-10">Explore Collection</span>
-                <ArrowRight className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all" size={16} />
-              </button>
-              <button 
-                onClick={() => {
-                  const el = document.getElementById('featured-section');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="px-10 py-4 border border-zinc-200 text-zinc-900 text-xs font-bold uppercase tracking-widest hover:bg-zinc-900 hover:text-white transition-all"
-              >
-                Learn More
-              </button>
-            </div>
-          </motion.div>
-        </div>
-        
-        {/* Scroll Indicator */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2 }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20"
-        >
-          <div className="w-[1px] h-16 bg-gradient-to-b from-white/50 to-transparent relative overflow-hidden">
-            <motion.div 
-              animate={{ y: ['-100%', '100%'] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              className="absolute inset-0 bg-white"
-            />
-          </div>
-        </motion.div>
       </section>
     </div>
   );
@@ -616,11 +566,13 @@ const BannerCarousel = ({ banners }: { banners: Banner[] }) => {
   );
 };
 
-const ProductCard = ({ product, onSelect, showColorsOnRight }: { 
+const ProductCard = ({ product, onSelect, showColorsOnRight, isWishlisted, onToggleWishlist }: { 
   product: Product, 
   onSelect: (p: Product) => void, 
   key?: React.Key,
-  showColorsOnRight?: boolean
+  showColorsOnRight?: boolean,
+  isWishlisted?: boolean,
+  onToggleWishlist?: (e: React.MouseEvent, p: Product) => void
 }) => {
   const colorsList = Array.isArray(product.colors) 
     ? product.colors 
@@ -657,12 +609,18 @@ const ProductCard = ({ product, onSelect, showColorsOnRight }: {
           referrerPolicy="no-referrer"
           onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=800&auto=format&fit=crop'; }}
         />
-        <div className="absolute top-2 left-2 md:top-4 md:left-4 bg-zinc-900 text-white text-[8px] md:text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded-sm z-10">
-          SALE
-        </div>
+        
+        {onToggleWishlist && (
+          <button 
+            onClick={(e) => onToggleWishlist(e, product)}
+            className="absolute top-2 right-2 md:top-4 md:right-4 z-20 p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white transition-colors"
+          >
+            <Heart size={18} className={isWishlisted ? "fill-red-500 text-red-500" : "text-zinc-600"} />
+          </button>
+        )}
         
         {showColorsOnRight && colorsList.length > 0 && (
-          <div className="absolute top-2 right-2 md:top-4 md:right-4 flex flex-col gap-1.5 z-10">
+          <div className={`absolute ${onToggleWishlist ? 'top-12 md:top-16' : 'top-2 md:top-4'} right-2 md:right-4 flex flex-col gap-1.5 z-10 transition-all`}>
             {colorsList.map((color: string, idx: number) => (
               <div 
                 key={idx} 
@@ -693,7 +651,41 @@ const ProductCard = ({ product, onSelect, showColorsOnRight }: {
   );
 };
 
-const AutoScrollCarousel = ({ products, onSelect }: { products: Product[], onSelect: (p: Product) => void }) => {
+const FeaturedCollection = ({ onCategoryClick }: { onCategoryClick: (category: string) => void }) => {
+  const categories = [
+    { name: 'Formal Pant', image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?q=80&w=800&auto=format&fit=crop' },
+    { name: 'Formal Shirt', image: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?q=80&w=800&auto=format&fit=crop' },
+    { name: 'Blazer', image: 'https://images.unsplash.com/photo-1592878904946-b3cd8ae243d0?q=80&w=800&auto=format&fit=crop' },
+    { name: 'Cuban Shirt', image: 'https://images.unsplash.com/photo-1603252109303-2751441dd157?q=80&w=800&auto=format&fit=crop' }
+  ];
+
+  return (
+    <section className="py-16 md:py-24 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-5xl font-serif font-bold text-zinc-900 mb-4 tracking-tight">Featured Collection</h2>
+          <p className="text-zinc-500 max-w-2xl mx-auto">Explore our premium selection of men's formal wear, crafted for elegance and comfort.</p>
+        </div>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {categories.map(category => (
+            <div 
+              key={category.name}
+              onClick={() => onCategoryClick(category.name)}
+              className="group flex items-center justify-center cursor-pointer bg-zinc-50 hover:bg-zinc-900 text-zinc-900 hover:text-white border border-zinc-200 hover:border-zinc-900 transition-all duration-300 rounded-2xl py-8 px-4 shadow-sm hover:shadow-md"
+            >
+              <span className="text-lg md:text-xl font-medium text-center">
+                {category.name}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const AutoScrollCarousel = ({ products, onSelect, user, onToggleWishlist }: { products: Product[], onSelect: (p: Product) => void, user?: User | null, onToggleWishlist?: (e: React.MouseEvent, p: Product) => void }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -724,7 +716,12 @@ const AutoScrollCarousel = ({ products, onSelect }: { products: Product[], onSel
       >
         {products.map((product, idx) => (
           <div key={`${product.id}-${idx}`} className="min-w-[280px] md:min-w-[320px] snap-start">
-            <ProductCard product={product} onSelect={onSelect} />
+            <ProductCard 
+              product={product} 
+              onSelect={onSelect} 
+              isWishlisted={user?.wishlist?.includes(String(product.id))}
+              onToggleWishlist={onToggleWishlist}
+            />
           </div>
         ))}
       </div>
@@ -732,7 +729,7 @@ const AutoScrollCarousel = ({ products, onSelect }: { products: Product[], onSel
   );
 };
 
-const TopRatedCarousel = ({ products, onSelect }: { products: Product[], onSelect: (p: Product) => void }) => {
+const TopRatedCarousel = ({ products, onSelect, user, onToggleWishlist }: { products: Product[], onSelect: (p: Product) => void, user?: User | null, onToggleWishlist?: (e: React.MouseEvent, p: Product) => void }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -759,7 +756,13 @@ const TopRatedCarousel = ({ products, onSelect }: { products: Product[], onSelec
       >
         {products.map((product, idx) => (
           <div key={`${product.id}-${idx}`} className="min-w-[280px] md:min-w-[320px] snap-start">
-            <ProductCard product={product} onSelect={onSelect} showColorsOnRight={true} />
+            <ProductCard 
+              product={product} 
+              onSelect={onSelect} 
+              showColorsOnRight={true} 
+              isWishlisted={user?.wishlist?.includes(String(product.id))}
+              onToggleWishlist={onToggleWishlist}
+            />
           </div>
         ))}
       </div>
@@ -767,13 +770,15 @@ const TopRatedCarousel = ({ products, onSelect }: { products: Product[], onSelec
   );
 };
 
-const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow, user, showToast }: { 
+const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow, user, showToast, onNavigate, onCategoryClick }: { 
   product: Product, 
   onAddToCart: (p: Product, size: any) => void, 
   onBack: () => void,
   onBuyNow: (p: Product, size: any) => void,
   user: User | null,
-  showToast: (msg: string, type?: 'success' | 'error' | 'info') => void
+  showToast: (msg: string, type?: 'success' | 'error' | 'info') => void,
+  onNavigate?: (page: string) => void,
+  onCategoryClick?: (category: string) => void
 }) => {
   const [selectedSize, setSelectedSize] = useState<any>(null);
   const [activeImage, setActiveImage] = useState(product.image);
@@ -848,13 +853,13 @@ const ProductDetails = ({ product, onAddToCart, onBack, onBuyNow, user, showToas
 
   return (
     <div className="pt-32 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <button 
-        onClick={onBack}
-        className="flex items-center text-zinc-500 hover:text-zinc-900 mb-8 transition-colors"
-      >
-        <ArrowRight className="rotate-180 mr-2" size={16} />
-        Back to Shop
-      </button>
+      <div className="flex items-center text-xs font-bold uppercase tracking-widest text-zinc-500 mb-8 gap-2 flex-wrap">
+        <button onClick={() => onNavigate?.('home')} className="hover:text-zinc-900 transition-colors">Home</button>
+        <span className="text-zinc-300">/</span>
+        <button onClick={() => onCategoryClick?.(product.category || '')} className="hover:text-zinc-900 transition-colors">{product.category || 'Shop'}</button>
+        <span className="text-zinc-300">/</span>
+        <span className="text-zinc-900">{product.name}</span>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
         {/* Images */}
@@ -1411,7 +1416,7 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
   const [customers, setCustomers] = useState<User[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [topRatedOfferImage, setTopRatedOfferImage] = useState('');
-  const [categories, setCategories] = useState<string[]>(['Formal Pant', 'Formal Shirt', 'Blazer', 'Office Wear', 'Premium Collection', 'Best Seller']);
+  const [categories, setCategories] = useState<string[]>(['Formal Pant', 'Formal Shirt', 'Blazer', 'Office Wear', 'Premium Collection', 'Best Seller', 'Cuban Shirt']);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
@@ -2315,7 +2320,14 @@ const AdminPanel = ({ onBack, onRefreshProducts, onRefreshBanners, onRefreshProm
                       </div>
                       <div className="md:col-span-2">
                         <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Category</label>
-                        <select className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900 bg-transparent" value={productFormData.category} onChange={e => setProductFormData({...productFormData, category: e.target.value})}>
+                        <select className="w-full border-b border-zinc-200 py-2 outline-none focus:border-zinc-900 bg-transparent" value={productFormData.category} onChange={e => {
+                          const newCat = e.target.value;
+                          if (newCat === 'Cuban Shirt') {
+                            setProductFormData({...productFormData, category: newCat, sizes: 'M, L, XL, XXL', price: 599, originalPrice: 599});
+                          } else {
+                            setProductFormData({...productFormData, category: newCat});
+                          }
+                        }}>
                           {categories.map(cat => (
                             <option key={cat} value={cat}>{cat}</option>
                           ))}
@@ -2841,6 +2853,7 @@ export default function App() {
   const [heroVideo, setHeroVideo] = useState('https://assets.mixkit.co/videos/preview/mixkit-man-in-a-suit-walking-slowly-4848-large.mp4');
   const [heroImage, setHeroImage] = useState('https://i.imgur.com/Vriu71z.png');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [sortBy, setSortBy] = useState<string>('default');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
@@ -2855,6 +2868,43 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [orderSuccess, setOrderSuccess] = useState(false);
 
+  const handleToggleWishlist = async (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation();
+    if (!user) {
+      showToast('Please login to add to wishlist', 'info');
+      setIsUserOpen(true);
+      return;
+    }
+
+    const currentWishlist = user.wishlist || [];
+    const productId = String(product.id);
+    const isWishlisted = currentWishlist.includes(productId);
+    
+    let newWishlist;
+    if (isWishlisted) {
+      newWishlist = currentWishlist.filter(id => id !== productId);
+      showToast('Removed from wishlist', 'info');
+    } else {
+      newWishlist = [...currentWishlist, productId];
+      showToast('Added to wishlist', 'success');
+    }
+
+    const updatedUser = { ...user, wishlist: newWishlist };
+    setUser(updatedUser);
+    localStorage.setItem('elegan_user', JSON.stringify(updatedUser));
+
+    try {
+      const q = query(collection(db, 'users'), where('email', '==', user.email));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const userDoc = snapshot.docs[0];
+        await updateDoc(doc(db, 'users', userDoc.id), { wishlist: newWishlist });
+      }
+    } catch (error) {
+      console.error('Error updating wishlist in DB:', error);
+    }
+  };
+
   const fetchProducts = async () => {
     try {
       const snapshot = await getDocs(collection(db, 'products'));
@@ -2862,6 +2912,20 @@ export default function App() {
       
       if (data.length === 0) {
         const defaults = [
+          {
+            name: "Classic Cuban Collar Shirt",
+            price: 599,
+            original_price: 899,
+            image: "https://images.unsplash.com/photo-1603252109303-2751441dd157?q=80&w=1000&auto=format&fit=crop",
+            category: "Cuban Shirt",
+            rating: 4.8,
+            reviews: 56,
+            fabric: "Viscose Rayon",
+            fit: "Relaxed Fit",
+            description: "Comfortable and stylish Cuban collar shirt for a relaxed look.",
+            sizes: ["M", "L", "XL", "XXL"],
+            colors: ["Black", "White", "Navy"]
+          },
           {
             name: "Premium Navy Formal Pant",
             price: 1250,
@@ -3160,14 +3224,16 @@ export default function App() {
   const pants = products.filter(p => !p.category || p.category === 'Formal Pant');
   const shirts = products.filter(p => p.category === 'Formal Shirt');
   const blazers = products.filter(p => p.category === 'Blazer');
+  const cubanShirts = products.filter(p => p.category === 'Cuban Shirt').sort((a, b) => a.name.localeCompare(b.name));
 
   const interleavedProducts: Product[] = [];
-  const maxLength = Math.max(pants.length, shirts.length, blazers.length);
+  const maxLength = Math.max(pants.length, shirts.length, blazers.length, cubanShirts.length);
 
   for (let i = 0; i < maxLength; i++) {
     if (i < pants.length) interleavedProducts.push(pants[i]);
     if (i < shirts.length) interleavedProducts.push(shirts[i]);
     if (i < blazers.length) interleavedProducts.push(blazers[i]);
+    if (i < cubanShirts.length) interleavedProducts.push(cubanShirts[i]);
   }
 
   return (
@@ -3305,15 +3371,14 @@ export default function App() {
         {currentPage === 'home' && (
           <div className="pt-16">
             <BannerCarousel banners={banners} />
-            <Hero 
-              onShopNow={() => handleNavigate('shop')} 
-              videoUrl={heroVideo}
-              imageUrl={heroImage}
-            />
             
             {topRatedOfferImage && (
               <div className="w-full bg-zinc-50 pt-16 pb-8 border-t border-zinc-100">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                  <div className="text-center mb-8">
+                    <h2 className="text-3xl md:text-4xl font-serif font-bold text-zinc-900 mb-2">স্পেশাল অফার</h2>
+                    <p className="text-zinc-500">আমাদের এক্সক্লুসিভ কালেকশন থেকে বেছে নিন আপনার পছন্দের পোশাক</p>
+                  </div>
                   <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -3331,7 +3396,14 @@ export default function App() {
               </div>
             )}
 
-            <AutoScrollCarousel products={interleavedProducts} onSelect={handleProductSelect} />
+            <FeaturedCollection 
+              onCategoryClick={(category) => {
+                setSelectedCategory(category);
+                handleNavigate('shop');
+              }} 
+            />
+
+            <AutoScrollCarousel products={interleavedProducts} onSelect={handleProductSelect} user={user} onToggleWishlist={handleToggleWishlist} />
 
             {/* Formal Pant Section */}
             <section id="formal-pant-section" className="py-16 md:py-24 bg-white">
@@ -3350,6 +3422,8 @@ export default function App() {
                         key={product.id} 
                         product={product} 
                         onSelect={handleProductSelect} 
+                        isWishlisted={user?.wishlist?.includes(String(product.id))}
+                        onToggleWishlist={handleToggleWishlist}
                       />
                     ))
                   }
@@ -3374,6 +3448,8 @@ export default function App() {
                         key={product.id} 
                         product={product} 
                         onSelect={handleProductSelect} 
+                        isWishlisted={user?.wishlist?.includes(String(product.id))}
+                        onToggleWishlist={handleToggleWishlist}
                       />
                     ))
                   }
@@ -3398,6 +3474,35 @@ export default function App() {
                         key={product.id} 
                         product={product} 
                         onSelect={handleProductSelect} 
+                        isWishlisted={user?.wishlist?.includes(String(product.id))}
+                        onToggleWishlist={handleToggleWishlist}
+                      />
+                    ))
+                  }
+                </div>
+              </div>
+            </section>
+
+            {/* Cuban Shirt Section */}
+            <section id="cuban-shirt-section" className="py-16 md:py-24 bg-zinc-50">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-12 md:mb-16">
+                  <h2 className="text-3xl md:text-5xl font-serif font-bold text-zinc-900 mb-4 tracking-tight">Cuban Shirt Collection</h2>
+                  <p className="max-w-2xl mx-auto text-zinc-500 text-sm md:text-lg leading-relaxed">
+                    আরামদায়ক এবং স্টাইলিশ কিউবান শার্ট কালেকশন। ক্যাজুয়াল লুকের জন্য সেরা পছন্দ।
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 max-w-7xl mx-auto">
+                  {products
+                    .filter(p => p.category === 'Cuban Shirt')
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map(product => (
+                      <ProductCard 
+                        key={product.id} 
+                        product={product} 
+                        onSelect={handleProductSelect} 
+                        isWishlisted={user?.wishlist?.includes(String(product.id))}
+                        onToggleWishlist={handleToggleWishlist}
                       />
                     ))
                   }
@@ -3406,7 +3511,7 @@ export default function App() {
             </section>
 
             {/* Top Rated Products Section */}
-            <section className="py-16 md:py-32 bg-zinc-50">
+            <section className="py-16 md:py-32 bg-white">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-12 md:mb-20">
                   <h2 className="text-3xl md:text-6xl font-serif font-bold text-zinc-900 mb-6 tracking-tight">Top Rated Products</h2>
@@ -3416,9 +3521,11 @@ export default function App() {
                 </div>
                 <TopRatedCarousel 
                   products={products
-                    .filter(p => (!p.category || p.category === 'Formal Pant' || p.category === 'Formal Shirt' || p.category === 'Blazer') && p.rating >= 4.8)
+                    .filter(p => (!p.category || p.category === 'Formal Pant' || p.category === 'Formal Shirt' || p.category === 'Blazer' || p.category === 'Cuban Shirt') && p.rating >= 4.8)
                     .slice(0, 6)}
                   onSelect={handleProductSelect}
+                  user={user}
+                  onToggleWishlist={handleToggleWishlist}
                 />
               </div>
             </section>
@@ -3457,6 +3564,15 @@ export default function App() {
         {currentPage === 'shop' && (
           <section className="pt-32 pb-24">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="mb-8">
+                <button 
+                  onClick={() => handleNavigate('home')}
+                  className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                  Back to Home
+                </button>
+              </div>
               <div className="text-center mb-16">
                 <h1 className="text-4xl md:text-5xl font-serif font-bold text-zinc-900 mb-4">Collection</h1>
                 <p className="text-zinc-500">Showing {products.filter(p => !selectedCategory || p.category === selectedCategory).length} products</p>
@@ -3478,21 +3594,32 @@ export default function App() {
                 </div>
                 <div className="flex flex-col gap-2 min-w-[200px]">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Sort By</label>
-                  <select className="bg-transparent border-b border-zinc-200 py-2 text-sm outline-none focus:border-zinc-900">
-                    <option>Newest First</option>
-                    <option>Price: Low to High</option>
-                    <option>Price: High to Low</option>
+                  <select 
+                    className="bg-transparent border-b border-zinc-200 py-2 text-sm outline-none focus:border-zinc-900"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                  >
+                    <option value="default">Newest First</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
                   </select>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 max-w-7xl mx-auto">
                 {products
                   .filter(product => (!selectedCategory || product.category === selectedCategory))
+                  .sort((a, b) => {
+                    if (sortBy === 'price-asc') return a.price - b.price;
+                    if (sortBy === 'price-desc') return b.price - a.price;
+                    return 0; // default
+                  })
                   .map(product => (
                     <ProductCard 
                       key={product.id} 
                       product={product} 
                       onSelect={handleProductSelect} 
+                      isWishlisted={user?.wishlist?.includes(String(product.id))}
+                      onToggleWishlist={handleToggleWishlist}
                     />
                   ))
                 }
@@ -3509,6 +3636,11 @@ export default function App() {
             onBuyNow={handleBuyNow}
             user={user}
             showToast={showToast}
+            onNavigate={handleNavigate}
+            onCategoryClick={(category) => {
+              setSelectedCategory(category);
+              handleNavigate('shop');
+            }}
           />
         )}
 

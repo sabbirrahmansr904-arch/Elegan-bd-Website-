@@ -1,10 +1,11 @@
 export interface User {
-  id: number;
+  id: number | string;
   name: string;
   email: string;
   phone?: string;
   address?: string;
   role?: string;
+  wishlist?: string[];
 }
 
 export interface Product {
