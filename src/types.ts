@@ -21,6 +21,7 @@ export interface Product {
   description: string;
   sizes: any[];
   colors?: string[];
+  stockMap?: { [color: string]: { [size: string]: number } };
   stock?: number;
   stockStatus?: 'In Stock' | 'Out of Stock' | 'Low Stock';
   rating: number;
@@ -29,6 +30,7 @@ export interface Product {
 
 export interface CartItem extends Product {
   selectedSize: any;
+  selectedColor?: string;
   quantity: number;
 }
 
